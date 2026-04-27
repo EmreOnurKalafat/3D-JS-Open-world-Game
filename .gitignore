@@ -1,0 +1,16 @@
+node_modules
+Claude.md
+*.claude
+*.env
+*.log
+*.tmp
+*.DS_Store
+*.node_modules
+package-lock.json
+dist
+build
+coverage
+logs
+*.log
+*.tmp
+*.DS_Store
