@@ -15,8 +15,22 @@ const bodyMeshMap = new Map();
 export function initPhysicsWorld() {
   physicsWorld = new CANNON.World();
   physicsWorld.gravity.set(0, WORLD.GRAVITY, 0);
-  physicsWorld.broadphase = new CANNON.NaiveBroadphase();
-  physicsWorld.solver.iterations = 10;
+  physicsWorld.broadphase = new CANNON.SAPBroadphase(physicsWorld);
+  physicsWorld.solver.iterations = 5;
+  physicsWorld.allowSleep = true;
+
+  // Skip collision between static-static body pairs (buildings don't collide with each other)
+  physicsWorld.defaultContactMaterial.contactEquationStiffness = 1e7;
+  physicsWorld.defaultContactMaterial.contactEquationRelaxation = 3;
+  physicsWorld.defaultContactMaterial.friction = 0.3;
+  physicsWorld.defaultContactMaterial.restitution = 0.2;
+
+  // Skip collision resolution between static-static body pairs
+  physicsWorld.addEventListener('preSolve', (evt) => {
+    if (evt.bodyA.type === CANNON.Body.STATIC && evt.bodyB.type === CANNON.Body.STATIC) {
+      evt.contactEquations.forEach(eq => eq.enabled = false);
+    }
+  });
 
   console.log('[PHYSICS] World initialised. Bodies before ground:', physicsWorld.bodies.length);
   return physicsWorld;
