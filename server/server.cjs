@@ -1,4 +1,4 @@
-// server.cjs — Node.js + Socket.io game server (Phase 1 stub)
+// server/server.cjs — Node.js + Socket.io game server (Phase 1 stub)
 
 const express = require('express');
 const http = require('http');
@@ -8,8 +8,8 @@ const fs = require('fs');
 const app = express();
 const server = http.createServer(app);
 
-// Serve static files from dist (production) or root (dev fallback)
-app.use(express.static(path.join(__dirname, '.')));
+// Serve static files from project root (dist or dev)
+app.use(express.static(path.join(__dirname, '..')));
 app.use(express.json());
 
 // Placeholder: Socket.io setup in Phase 10
@@ -26,8 +26,8 @@ app.post('/api/rooms', (_req, res) => {
 });
 
 // AI Edit — FreeCam Live Editor AI assistant relay
-const AI_QUEUE_FILE = path.join(__dirname, '.ai_prompt_queue.json');
-const AI_RESPONSE_FILE = path.join(__dirname, '.ai_response.json');
+const AI_QUEUE_FILE = path.join(__dirname, '..', '.ai_prompt_queue.json');
+const AI_RESPONSE_FILE = path.join(__dirname, '..', '.ai_response.json');
 
 app.post('/api/ai-edit', (req, res) => {
   try {
@@ -63,7 +63,7 @@ app.get('/api/ai-response', (_req, res) => {
 
 // Source File — read/write for FreeCam Live Editor raw source code editing
 const ALLOWED_EXTS = new Set(['.js', '.json', '.html', '.css', '.cjs']);
-const PROJECT_ROOT = __dirname;
+const PROJECT_ROOT = path.join(__dirname, '..');
 
 function isSafePath(filePath) {
   if (!filePath || typeof filePath !== 'string') return false;
@@ -146,7 +146,7 @@ app.post('/api/comment-lines', (req, res) => {
 });
 
 // Editor Deletion Registry — persistent deletion tracking for FreeCam editor
-const DELETIONS_FILE = path.join(__dirname, 'data', 'editor_deletions.json');
+const DELETIONS_FILE = path.join(__dirname, '..', 'data', 'editor', 'deletions.json');
 
 function readDeletions() {
   try {
@@ -204,7 +204,7 @@ app.delete('/api/deletions', (req, res) => {
 });
 
 // Editor Action Log — detailed history of all editor operations
-const ACTIONS_FILE = path.join(__dirname, 'data', 'editor_actions.json');
+const ACTIONS_FILE = path.join(__dirname, '..', 'data', 'editor', 'actions.json');
 
 function readActions() {
   try {

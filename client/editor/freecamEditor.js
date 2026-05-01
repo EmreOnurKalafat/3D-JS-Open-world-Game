@@ -1,4 +1,4 @@
-// client/freecamEditor.js — Live Editor for FreeCam mode
+// client/editor/freecamEditor.js — Live Editor for FreeCam mode
 // Shows raw source code, persists changes to disk, supports delete+comment
 
 import * as THREE from 'three';
@@ -171,27 +171,27 @@ function _collectAllTargets() {
 function _determineSourceFile(obj) {
   if (obj.userData && obj.userData.sourceFile) return obj.userData.sourceFile;
 
-  if (obj.isInstancedMesh) return 'client/world.js';
+  if (obj.isInstancedMesh) return 'client/zones/world.js';
 
   const KNOWN_TYPES = ['vehicle', 'character', 'building', 'tree', 'streetLight', 'trafficLight', 'pickup', 'police'];
 
   let cur = obj;
   while (cur) {
     if (cur.userData && cur.userData.sourceFile) return cur.userData.sourceFile;
-    if (cur.name && cur.name.toLowerCase().includes('hospital')) return 'client/hospital.js';
+    if (cur.name && cur.name.toLowerCase().includes('hospital')) return 'client/zones/zone_hospital.js';
 
     // Check userData.type on every ancestor
     if (cur.userData && cur.userData.type) {
-      if (cur.userData.type === 'police') return 'client/policeStation.js';
-      if (KNOWN_TYPES.includes(cur.userData.type)) return 'client/assetBuilder.js';
+      if (cur.userData.type === 'police') return 'client/zones/zone_police.js';
+      if (KNOWN_TYPES.includes(cur.userData.type)) return 'client/builders/entityBuilder.js';
     }
 
     // Check parent name for clues about source
     if (cur.name) {
       const n = cur.name.toLowerCase();
-      if (n.includes('hospital')) return 'client/hospital.js';
-      if (n.includes('police')) return 'client/policeStation.js';
-      if (n.includes('building') || n.includes('tree') || n.includes('vehicle') || n.includes('character')) return 'client/assetBuilder.js';
+      if (n.includes('hospital')) return 'client/zones/zone_hospital.js';
+      if (n.includes('police')) return 'client/zones/zone_police.js';
+      if (n.includes('building') || n.includes('tree') || n.includes('vehicle') || n.includes('character')) return 'client/builders/entityBuilder.js';
     }
 
     cur = cur.parent;
@@ -459,7 +459,7 @@ function _serializeToJSON(obj, instanceId) {
 
     let json = '// InstancedMeshInstance — ' + _meshTypeName(obj) + ' #' + instanceId + '\n';
     json += '// totalInstances: ' + obj.count + '\n';
-    json += '// Bu obje prosedürel olarak oluşturuldu. Kaynak dosya: client/world.js\n';
+    json += '// Bu obje prosedürel olarak oluşturuldu. Kaynak dosya: client/zones/world.js\n';
     json += '// Değişiklikleri kalıcı yapmak için kaynak dosyayı düzenleyin.\n';
     json += JSON.stringify({
       worldPosition: { x: +pos.x.toFixed(4), y: +pos.y.toFixed(4), z: +pos.z.toFixed(4) },

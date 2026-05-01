@@ -649,7 +649,7 @@ export function createHospital(scene, physicsWorld) {
 
   const group = new THREE.Group();
   group.name = 'hospital';
-  group.userData.sourceFile = 'client/hospital.js';
+  group.userData.sourceFile = 'client/zones/zone_hospital.js';
 
   /* Build order (back-to-front, ground-up) */
   buildShell(group);
