@@ -12,6 +12,7 @@ import {
   toggleDebug,
 } from '/client/physics.js';
 import { generateCity, updateWorld, cityData, updateBuildingTexturesForPhase, updateBuildingLighting } from '/client/world.js';
+import { initFreecamEditor, setFreecamActive, updateFreecamEditor, onFreecamClick, isEditorModalOpen } from '/client/freecamEditor.js';
 
 // --- Global state ---
 const DAY_CYCLE_DURATION = 20 * 60; // 20 real minutes for full cycle
@@ -23,6 +24,7 @@ let clouds = [];
 let clock = new THREE.Clock();
 let dayPhase = 'day';
 let isPointerLocked = false;
+let crosshairEl;
 
 // --- FPS counter ---
 let fpsEl;
@@ -40,7 +42,7 @@ let freecamActive = false;
 let freecamYaw = 0;
 let freecamPitch = 0;
 const freecamKeys = { w: false, a: false, s: false, d: false, q: false, e: false, shift: false };
-const FREECAM_SPEED = 50;
+const FREECAM_SPEED = 20;
 const FREECAM_FAST_MULT = 3;
 let savedCamera = null;
 
@@ -368,6 +370,7 @@ function updateDayNight(wrappedSeconds) {
  */
 function toggleFreecam() {
   freecamActive = !freecamActive;
+  setFreecamActive(freecamActive);
   if (freecamActive) {
     // Save current camera state
     savedCamera = {
@@ -379,10 +382,6 @@ function toggleFreecam() {
     camera.getWorldDirection(dir);
     freecamYaw = Math.atan2(dir.x, dir.z);
     freecamPitch = Math.asin(dir.y);
-    // Release pointer lock
-    if (isPointerLocked) {
-      document.exitPointerLock();
-    }
     console.log('[FREECAM] Enabled — WASD move, Q/E up/down, Shift boost, U to exit');
   } else {
     // Restore saved camera
@@ -401,7 +400,7 @@ function toggleFreecam() {
  * @param {number} delta — frame time in seconds
  */
 function updateFreecam(delta) {
-  if (!freecamActive) return;
+  if (!freecamActive || isEditorModalOpen()) return;
 
   const speed = FREECAM_SPEED * (freecamKeys.shift ? FREECAM_FAST_MULT : 1) * delta;
 
@@ -432,7 +431,7 @@ function updateFreecam(delta) {
  * Mouse move handler for freecam rotation
  */
 function onMouseMove(event) {
-  if (!freecamActive) return;
+  if (!freecamActive || isEditorModalOpen()) return;
   freecamYaw -= event.movementX * 0.002;
   freecamPitch -= event.movementY * 0.002;
   freecamPitch = clamp(freecamPitch, -Math.PI / 2, Math.PI / 2);
@@ -456,6 +455,7 @@ function update(delta, elapsed) {
   try {
     if (freecamActive) {
       updateFreecam(delta);
+      updateFreecamEditor();
     } else {
       stepPhysics(delta);
     }
@@ -546,12 +546,23 @@ function onResize() {
  */
 function onPointerLockChange() {
   isPointerLocked = document.pointerLockElement === renderer.domElement;
+  if (crosshairEl) {
+    crosshairEl.style.display = (isPointerLocked || freecamActive) ? 'block' : 'none';
+  }
 }
 
 /**
  * Requests pointer lock on canvas click
  */
 function onCanvasClick() {
+  if (freecamActive) {
+    if (!isPointerLocked) {
+      renderer.domElement.requestPointerLock();
+      return;
+    }
+    onFreecamClick();
+    return;
+  }
   if (!isPointerLocked) {
     renderer.domElement.requestPointerLock();
   }
@@ -593,6 +604,7 @@ function onKeyDown(event) {
 
   // Freecam movement keys
   if (freecamActive) {
+    if (isEditorModalOpen()) return;
     const k = event.key.toLowerCase();
     if (k in freecamKeys) {
       freecamKeys[k] = true;
@@ -628,6 +640,26 @@ function onKeyDown(event) {
   if (event.key === 'f' || event.key === 'F') {
     spawnTestBox();
   }
+}
+
+/**
+ * Creates the centre-screen crosshair using CSS
+ */
+function initCrosshair() {
+  crosshairEl = document.createElement('div');
+  crosshairEl.id = 'crosshair';
+  crosshairEl.style.cssText =
+    'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;'
+    + 'pointer-events:none;display:none;';
+  crosshairEl.innerHTML = `
+    <svg width="24" height="24" viewBox="0 0 24 24" style="display:block;">
+      <line x1="12" y1="2"  x2="12" y2="9"  stroke="white" stroke-width="2" stroke-opacity="0.9"/>
+      <line x1="12" y1="15" x2="12" y2="22" stroke="white" stroke-width="2" stroke-opacity="0.9"/>
+      <line x1="2"  y1="12" x2="9"  y2="12" stroke="white" stroke-width="2" stroke-opacity="0.9"/>
+      <line x1="15" y1="12" x2="22" y2="12" stroke="white" stroke-width="2" stroke-opacity="0.9"/>
+      <circle cx="12" cy="12" r="1" fill="white" fill-opacity="0.4"/>
+    </svg>`;
+  document.body.appendChild(crosshairEl);
 }
 
 // --- Bootstrap ---
@@ -668,6 +700,7 @@ function boot() {
   initSky();
   initSun();
   initClouds();
+  initCrosshair();
 
   // Physics world first (city needs it for building collisions)
   initPhysicsWorld();
@@ -675,6 +708,9 @@ function boot() {
 
   // Generate the city
   generateCity(scene);
+
+  // Init FreeCam editor — all meshes are automatically targetable
+  initFreecamEditor(scene, camera, renderer.domElement);
 
   window.addEventListener('resize', onResize);
   window.addEventListener('keydown', onKeyDown);

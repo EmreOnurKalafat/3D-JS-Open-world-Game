@@ -15,3 +15,6 @@ logs
 *.tmp
 *.DS_Store
 *.omc
+.ai_prompt_queue.json
+.ai_response.json
+.ai_queue/

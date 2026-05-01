@@ -13,6 +13,7 @@ import {
 import { getPhysicsWorld } from './physics.js';
 import { ChunkManager } from './chunkManager.js';
 import { buildPoliceStationComplex, POLICE_GRID_COL, POLICE_GRID_ROW } from './policeStation.js';
+import { createHospital, HOSPITAL_GRID_COL, HOSPITAL_GRID_ROW } from './hospital.js';
 
 const BLOCK = WORLD.BLOCK_SIZE;
 const ROAD = WORLD.ROAD_WIDTH;
@@ -25,7 +26,11 @@ const CURB = ROAD / 2 + SW;
 const BUILD_MARGIN = 1.0;
 const EXT = 40;
 
-export const cityData = { buildings: [], trees: [], waterMesh: null, waterData: null, lights: [], chunkMgr: null, buildingLights: [], nightFactor: 0 };
+export const cityData = { buildings: [], trees: [], waterMesh: null, waterData: null, lights: [], chunkMgr: null, buildingLights: [], nightFactor: 0, hospitalGroup: null, policeGroups: [] };
+
+function isHospitalCell(row, col) {
+  return col === HOSPITAL_GRID_COL && row === HOSPITAL_GRID_ROW;
+}
 
 // ═══════════════════════════════════════════════════════════
 //  SHARED MATERIALS — created once, reused everywhere
@@ -208,9 +213,9 @@ function createBlockFill() {
       if (row === Math.floor(GRID / 2) && col === Math.floor(GRID / 2)) continue;
       const cx = col * CELL - WH + HALF;
       const cz = row * CELL - WH + HALF;
-      const isPolice = row === POLICE_GRID_ROW && col === POLICE_GRID_COL;
-      const blockMat = isPolice ? asphaltFillMat : fillMat;
-      const mergeKey = isPolice ? 'fill_asphalt' : 'fill';
+      const isSpecial = (row === POLICE_GRID_ROW && col === POLICE_GRID_COL) || isHospitalCell(row, col);
+      const blockMat = isSpecial ? asphaltFillMat : fillMat;
+      const mergeKey = isSpecial ? 'fill_asphalt' : 'fill';
       addMerge(mergeKey, blockMat, geo,
         new THREE.Vector3(cx, 0.01, cz),
         new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)),
@@ -603,6 +608,7 @@ function placeBuildings(scene, occ) {
       if (row === 0) continue;
       if (row === Math.floor(GRID / 2) && col === Math.floor(GRID / 2)) continue;
       if (row === POLICE_GRID_ROW && col === POLICE_GRID_COL) continue; // police station
+      if (isHospitalCell(row, col)) continue; // hospital
 
       const cx = col * CELL - WH + HALF, cz = row * CELL - WH + HALF;
       const zone = getZone(row, col);
@@ -800,6 +806,7 @@ function placeFurniture(scene, occ) {
       if (row === 0) continue;
       if (row === Math.floor(GRID / 2) && col === Math.floor(GRID / 2)) continue;
       if (row === POLICE_GRID_ROW && col === POLICE_GRID_COL) continue; // police station
+      if (isHospitalCell(row, col)) continue; // hospital
 
       const cx = col * CELL - WH + HALF, cz = row * CELL - WH + HALF;
       const treeOff = HALF - ROAD / 2 - SW - 1;
@@ -835,6 +842,7 @@ function placeFurniture(scene, occ) {
       if (row === 0) continue;
       if (row === Math.floor(GRID / 2) && col === Math.floor(GRID / 2)) continue;
       if (row === POLICE_GRID_ROW && col === POLICE_GRID_COL) continue; // police station
+      if (isHospitalCell(row, col)) continue; // hospital
 
       const cx = col * CELL - WH + HALF, cz = row * CELL - WH + HALF;
       const carOff = HALF - ROAD / 2 - SW - 0.5;
@@ -1053,6 +1061,12 @@ export function generateCity(scene) {
   placeBuildings(scene, occ);
   placeLandmarks(scene, occ);
   buildPoliceStationComplex(scene, occ); // standalone complex — replaces old generic landmark
+  try {
+    const hospitalResult = createHospital(scene, getPhysicsWorld());
+    cityData.hospitalGroup = hospitalResult.group;
+  } catch (e) {
+    console.error('[WORLD] Hospital creation failed:', e);
+  }
   createPark(scene, occ);
 
   // Build ALL instanced meshes (street furniture + park trees)
