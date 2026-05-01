@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 
 // ── Module state ────────────────────────────────────────────
-let scene, camera;
+let scene, camera, domElement;
 let freecamActive = false;
 let raycaster, mouseNDC;
 let currentHovered = null;
@@ -15,15 +15,18 @@ let selectedObject = null;
 let selectedInstanceId = -1;
 let selectedSourceFile = null;
 let aiPollTimer = null;
+let originalContent = '';
+const MAX_SELECT_DISTANCE = 50;
 
 // ── Public API ──────────────────────────────────────────────
 
 export function initFreecamEditor(scn, cam, domEl) {
   scene = scn;
   camera = cam;
+  domElement = domEl;
   raycaster = new THREE.Raycaster();
   mouseNDC = new THREE.Vector2(0, 0);
-  raycaster.far = 500;
+  raycaster.far = MAX_SELECT_DISTANCE;
 
   _buildModalDOM();
   console.log('[FreeCamEditor] Initialised — source-code editing ready');
@@ -43,6 +46,79 @@ export function isEditorModalOpen() {
   return modalEl && modalEl.backdrop.classList.contains('open');
 }
 
+export async function applyDeletions() {
+  try {
+    const res = await fetch('/api/deletions');
+    if (!res.ok) return;
+    const deletions = await res.json();
+    if (!deletions.length) return;
+
+    let applied = 0;
+    const used = new Set();
+
+    for (const del of deletions) {
+      if (del.isInstancedMesh && del.instanceId >= 0) {
+        // Match InstancedMesh by type name + position
+        scene.traverse((obj) => {
+          if (!obj.isInstancedMesh) return;
+          if (used.has(obj.uuid + '_' + del.instanceId)) return;
+          const typeName = _meshTypeName(obj);
+          if (typeName !== del.meshType || del.instanceId >= obj.count) return;
+
+          const matrix = new THREE.Matrix4();
+          obj.getMatrixAt(del.instanceId, matrix);
+          const pos = new THREE.Vector3();
+          pos.setFromMatrixPosition(matrix);
+          if (Math.abs(pos.x - del.position.x) < 1 && Math.abs(pos.z - del.position.z) < 1) {
+            const zeroMatrix = new THREE.Matrix4().makeScale(0, 0, 0);
+            obj.setMatrixAt(del.instanceId, zeroMatrix);
+            obj.instanceMatrix.needsUpdate = true;
+            used.add(obj.uuid + '_' + del.instanceId);
+            applied++;
+          }
+        });
+      } else if (del.position && del.meshType) {
+        // Non-InstancedMesh: match by world position proximity + geometry type
+        let bestMatch = null;
+        let bestDist = Infinity;
+
+        scene.traverse((obj) => {
+          if (!obj.isMesh || obj.isInstancedMesh) return;
+          if (!obj.geometry || obj.geometry.type !== del.meshType) return;
+          if (obj.userData && obj.userData._editorDeleted) return;
+          if (used.has(obj.uuid)) return;
+
+          const worldPos = new THREE.Vector3();
+          obj.getWorldPosition(worldPos);
+          const dx = worldPos.x - del.position.x;
+          const dy = worldPos.y - del.position.y;
+          const dz = worldPos.z - del.position.z;
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+          if (dist < 0.5 && dist < bestDist) {
+            bestDist = dist;
+            bestMatch = obj;
+          }
+        });
+
+        if (bestMatch) {
+          bestMatch.visible = false;
+          bestMatch.userData._editorDeleted = true;
+          bestMatch.traverse((c) => { if (c.isMesh) c.visible = false; });
+          used.add(bestMatch.uuid);
+          applied++;
+        }
+      }
+    }
+
+    if (applied > 0) {
+      console.log('[FreeCamEditor] Re-applied', applied, 'deletions from registry');
+    }
+  } catch (err) {
+    console.warn('[FreeCamEditor] Failed to apply deletions:', err);
+  }
+}
+
 export function updateFreecamEditor() {
   if (!freecamActive || isEditorModalOpen()) return;
 
@@ -50,7 +126,7 @@ export function updateFreecamEditor() {
   const targets = _collectAllTargets();
   const hits = raycaster.intersectObjects(targets, false);
 
-  if (hits.length > 0) {
+  if (hits.length > 0 && hits[0].distance < MAX_SELECT_DISTANCE) {
     const hit = hits[0];
     const obj = hit.object;
     const instanceId = hit.instanceId !== undefined ? hit.instanceId : -1;
@@ -97,11 +173,27 @@ function _determineSourceFile(obj) {
 
   if (obj.isInstancedMesh) return 'client/world.js';
 
+  const KNOWN_TYPES = ['vehicle', 'character', 'building', 'tree', 'streetLight', 'trafficLight', 'pickup', 'police'];
+
   let cur = obj;
   while (cur) {
     if (cur.userData && cur.userData.sourceFile) return cur.userData.sourceFile;
     if (cur.name && cur.name.toLowerCase().includes('hospital')) return 'client/hospital.js';
-    if (cur.userData && cur.userData.type === 'police') return 'client/policeStation.js';
+
+    // Check userData.type on every ancestor
+    if (cur.userData && cur.userData.type) {
+      if (cur.userData.type === 'police') return 'client/policeStation.js';
+      if (KNOWN_TYPES.includes(cur.userData.type)) return 'client/assetBuilder.js';
+    }
+
+    // Check parent name for clues about source
+    if (cur.name) {
+      const n = cur.name.toLowerCase();
+      if (n.includes('hospital')) return 'client/hospital.js';
+      if (n.includes('police')) return 'client/policeStation.js';
+      if (n.includes('building') || n.includes('tree') || n.includes('vehicle') || n.includes('character')) return 'client/assetBuilder.js';
+    }
+
     cur = cur.parent;
   }
 
@@ -177,31 +269,43 @@ function _buildModalDOM() {
   style.textContent = `
     #feModalBackdrop{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.55);display:none;}
     #feModalBackdrop.open{display:flex;align-items:center;justify-content:center;}
-    #feModal{background:#1e1e2e;color:#cdd6f4;border-radius:10px;padding:16px;width:600px;max-height:85vh;display:flex;flex-direction:column;font-family:'Segoe UI',sans-serif;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
-    #feModalHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
-    #feModalTitle{font-size:15px;font-weight:600;}
-    #feModalSource{font-size:11px;color:#89b4fa;margin-bottom:6px;}
-    #feModalClose{background:none;border:none;color:#cdd6f4;font-size:20px;cursor:pointer;padding:0 4px;}
+    #feModal{background:#1e1e2e;color:#cdd6f4;border-radius:12px;padding:24px;width:800px;max-height:90vh;display:flex;flex-direction:column;font-family:'Segoe UI',sans-serif;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
+    #feModalHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+    #feModalTitle{font-size:20px;font-weight:700;}
+    #feModalSource{font-size:14px;color:#89b4fa;margin-bottom:10px;}
+    #feModalClose{background:none;border:none;color:#cdd6f4;font-size:28px;cursor:pointer;padding:0 6px;}
     #feModalClose:hover{color:#fff;}
-    #feEditorData{width:100%;height:360px;background:#11111b;color:#a6e3a1;border:1px solid #313244;border-radius:6px;padding:10px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:13px;resize:vertical;white-space:pre;tab-size:2;}
-    #feEditorActions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
-    #feEditorSave{background:#a6e3a1;color:#1e1e2e;border:none;padding:8px 20px;border-radius:6px;font-weight:600;cursor:pointer;}
+    #feEditorData{width:100%;height:450px;background:#11111b;color:#a6e3a1;border:1px solid #313244;border-radius:8px;padding:14px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:15px;resize:vertical;white-space:pre;tab-size:2;line-height:1.5;}
+    #feEditorActions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+    #feEditorSave{background:#a6e3a1;color:#1e1e2e;border:none;padding:10px 24px;border-radius:8px;font-weight:700;cursor:pointer;font-size:15px;}
     #feEditorSave:hover{background:#94d89a;}
-    #feEditorDelete{background:#f38ba8;color:#1e1e2e;border:none;padding:8px 20px;border-radius:6px;font-weight:600;cursor:pointer;}
+    #feEditorDelete{background:#f38ba8;color:#1e1e2e;border:none;padding:10px 24px;border-radius:8px;font-weight:700;cursor:pointer;font-size:15px;}
     #feEditorDelete:hover{background:#e07a96;}
-    #feEditorAI{background:#89b4fa;color:#1e1e2e;border:none;padding:8px 20px;border-radius:6px;font-weight:600;cursor:pointer;}
+    #feEditorAI{background:#89b4fa;color:#1e1e2e;border:none;padding:10px 24px;border-radius:8px;font-weight:700;cursor:pointer;font-size:15px;}
     #feEditorAI:hover{background:#7aa2f0;}
-    #feAIPanel{margin-top:10px;display:none;flex-direction:column;gap:6px;}
+    #feEditorHistory{background:#6c7086;color:#1e1e2e;border:none;padding:10px 24px;border-radius:8px;font-weight:700;cursor:pointer;font-size:15px;}
+    #feEditorHistory:hover{background:#585b70;}
+    #feAIPanel{margin-top:14px;display:none;flex-direction:column;gap:8px;}
     #feAIPanel.open{display:flex;}
-    #feAIPromptInput{width:100%;background:#11111b;color:#cdd6f4;border:1px solid #89b4fa;border-radius:6px;padding:8px;font-size:13px;}
-    #feAIPromptSend{background:#cba6f7;color:#1e1e2e;border:none;padding:6px 16px;border-radius:6px;font-weight:600;cursor:pointer;align-self:flex-start;}
+    #feAIPromptInput{width:100%;background:#11111b;color:#cdd6f4;border:1px solid #89b4fa;border-radius:8px;padding:10px;font-size:15px;}
+    #feAIPromptSend{background:#cba6f7;color:#1e1e2e;border:none;padding:8px 20px;border-radius:8px;font-weight:700;cursor:pointer;align-self:flex-start;font-size:15px;}
     #feAIPromptSend:hover{background:#b893e8;}
-    #feAIPromptStatus{font-size:12px;color:#f9e2af;min-height:18px;}
-    #feDeleteConfirm{display:none;margin-top:8px;padding:8px;background:#2a1a1f;border:1px solid #f38ba8;border-radius:6px;font-size:13px;}
-    #feDeleteConfirmText{margin-bottom:6px;}
-    #feDeleteConfirmYes{background:#f38ba8;color:#1e1e2e;border:none;padding:4px 16px;border-radius:4px;font-weight:600;cursor:pointer;margin-right:8px;}
-    #feDeleteConfirmNo{background:#313244;color:#cdd6f4;border:none;padding:4px 16px;border-radius:4px;cursor:pointer;}
-    #feToast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:3000;padding:8px 20px;border-radius:6px;font-size:14px;font-family:monospace;opacity:0;transition:opacity 0.3s;pointer-events:none;}
+    #feAIPromptStatus{font-size:14px;color:#f9e2af;min-height:20px;}
+    #feDeleteConfirm{display:none;margin-top:12px;padding:12px;background:#2a1a1f;border:1px solid #f38ba8;border-radius:8px;font-size:15px;}
+    #feDeleteConfirmText{margin-bottom:10px;}
+    #feDeleteConfirmYes{background:#f38ba8;color:#1e1e2e;border:none;padding:8px 20px;border-radius:6px;font-weight:700;cursor:pointer;margin-right:10px;font-size:15px;}
+    #feDeleteConfirmNo{background:#313244;color:#cdd6f4;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:15px;}
+    #feToast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:3000;padding:10px 24px;border-radius:8px;font-size:16px;font-family:monospace;opacity:0;transition:opacity 0.3s;pointer-events:none;}
+    #feHistoryPanel{margin-top:14px;display:none;flex-direction:column;gap:6px;max-height:250px;overflow-y:auto;background:#11111b;border:1px solid #313244;border-radius:8px;padding:10px;}
+    #feHistoryPanel.open{display:flex;}
+    .feHistoryItem{padding:8px 10px;border-radius:6px;font-size:13px;font-family:monospace;border-left:3px solid #555;line-height:1.5;}
+    .feHistoryItem.silindi{border-left-color:#f38ba8;background:#1a1015;}
+    .feHistoryItem.eklendi{border-left-color:#a6e3a1;background:#101a12;}
+    .feHistoryItem.değiştirildi{border-left-color:#f9e2af;background:#1a1810;}
+    .feHistoryItem.AI{border-left-color:#89b4fa;background:#10141a;}
+    .feHistoryTime{color:#6c7086;margin-bottom:2px;}
+    .feHistoryDesc{color:#cdd6f4;}
+    .feHistoryCode{color:#a6adc8;margin-top:4px;white-space:pre-wrap;word-break:break-all;max-height:80px;overflow-y:auto;font-size:12px;}
   `;
   document.head.appendChild(style);
 
@@ -219,6 +323,7 @@ function _buildModalDOM() {
         <button id="feEditorSave">Kaydet (Save)</button>
         <button id="feEditorDelete">Sil (Delete)</button>
         <button id="feEditorAI">AI Assist</button>
+        <button id="feEditorHistory">Geçmiş</button>
       </div>
       <div id="feDeleteConfirm">
         <div id="feDeleteConfirmText">Bu objeyi silmek istediğine emin misin? Kaynak kodda yorum satırına çevrilecek.</div>
@@ -230,6 +335,7 @@ function _buildModalDOM() {
         <button id="feAIPromptSend">AI'a Gönder</button>
         <div id="feAIPromptStatus"></div>
       </div>
+      <div id="feHistoryPanel"></div>
     </div>
   `;
   document.body.appendChild(backdrop);
@@ -250,6 +356,8 @@ function _buildModalDOM() {
     aiInput: document.getElementById('feAIPromptInput'),
     aiSend: document.getElementById('feAIPromptSend'),
     aiStatus: document.getElementById('feAIPromptStatus'),
+    historyPanel: document.getElementById('feHistoryPanel'),
+    historyBtn: document.getElementById('feEditorHistory'),
     deleteConfirm: document.getElementById('feDeleteConfirm'),
     deleteConfirmText: document.getElementById('feDeleteConfirmText'),
     deleteConfirmYes: document.getElementById('feDeleteConfirmYes'),
@@ -264,6 +372,7 @@ function _buildModalDOM() {
   modalEl.deleteConfirmNo.addEventListener('click', _onDeleteCancel);
   modalEl.aiBtn.addEventListener('click', _toggleAIPanel);
   modalEl.aiSend.addEventListener('click', _onAISend);
+  modalEl.historyBtn.addEventListener('click', _toggleHistory);
 }
 
 // ── Internal: Modal open/close ──────────────────────────────
@@ -276,13 +385,17 @@ async function _openModal(obj, instanceId, sourceFile) {
   modalEl.deleteConfirm.style.display = 'none';
   modalEl.backdrop.classList.add('open');
   _closeAIPanel();
+  document.exitPointerLock();
 
   if (sourceFile) {
     modalEl.textarea.value = 'Yükleniyor...';
     const content = await _loadSourceFile(sourceFile);
     modalEl.textarea.value = content;
+    originalContent = content;
   } else {
-    modalEl.textarea.value = _serializeToJSON(obj, instanceId);
+    const jsonStr = _serializeToJSON(obj, instanceId);
+    modalEl.textarea.value = jsonStr;
+    originalContent = jsonStr;
   }
 }
 
@@ -294,6 +407,9 @@ function _closeModal() {
   selectedObject = null;
   selectedInstanceId = -1;
   selectedSourceFile = null;
+  if (freecamActive && domElement) {
+    domElement.requestPointerLock();
+  }
 }
 
 // ── Internal: Source file read/write ────────────────────────
@@ -438,28 +554,143 @@ function _findObjectLineRange(content, obj, instanceId) {
   return null;
 }
 
-// ── Internal: Actions ───────────────────────────────────────
+// ── Internal: Action Logging ─────────────────────────────────
+
+function _computeDiff(oldText, newText) {
+  const oldLines = oldText.split('\n');
+  const newLines = newText.split('\n');
+  const changes = [];
+
+  // Find changed line ranges
+  let i = 0;
+  while (i < Math.max(oldLines.length, newLines.length)) {
+    const oldLine = i < oldLines.length ? oldLines[i] : null;
+    const newLine = i < newLines.length ? newLines[i] : null;
+
+    if (oldLine !== newLine) {
+      // Find the end of this change block
+      let j = i;
+      const maxCheck = Math.min(
+        Math.max(oldLines.length, newLines.length) - j,
+        20
+      );
+      while (j - i < maxCheck) {
+        const ol = j < oldLines.length ? oldLines[j] : null;
+        const nl = j < newLines.length ? newLines[j] : null;
+        if (ol === nl && j > i) break;
+        j++;
+      }
+
+      const oldSnippet = oldLines.slice(i, Math.min(j, oldLines.length)).join('\n');
+      const newSnippet = newLines.slice(i, Math.min(j, newLines.length)).join('\n');
+
+      if (oldSnippet && !newSnippet) {
+        changes.push({
+          lineStart: i + 1,
+          lineEnd: Math.min(j, oldLines.length),
+          type: 'silindi',
+          code: oldSnippet,
+        });
+      } else if (!oldSnippet && newSnippet) {
+        changes.push({
+          lineStart: i + 1,
+          lineEnd: i + 1,
+          type: 'eklendi',
+          code: newSnippet,
+        });
+      } else {
+        changes.push({
+          lineStart: i + 1,
+          lineEnd: Math.min(j, Math.max(oldLines.length, newLines.length)),
+          type: 'değiştirildi',
+          code: oldSnippet.substring(0, 200),
+          newCode: newSnippet.substring(0, 200),
+        });
+      }
+      i = j;
+    } else {
+      i++;
+    }
+  }
+
+  return changes;
+}
+
+async function _logAction(operation, detail) {
+  try {
+    await fetch('/api/editor-actions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        operation,
+        sourceFile: detail.sourceFile || null,
+        objectLabel: detail.objectLabel || null,
+        lineStart: detail.lineStart || null,
+        lineEnd: detail.lineEnd || null,
+        codeSnippet: detail.codeSnippet || null,
+        detail: detail.description || null,
+      }),
+    });
+  } catch (_) { /* non-critical */ }
+}
 
 async function _onSave() {
   try {
     if (!selectedObject) return;
-    const content = modalEl.textarea.value;
+    const newContent = modalEl.textarea.value;
+    const label = _objectLabel(selectedObject, selectedInstanceId);
 
     // If it's JSON mode (no source file), apply JSON to object directly
     if (!selectedSourceFile) {
-      _applyJSONToObject(selectedObject, selectedInstanceId, content);
+      _applyJSONToObject(selectedObject, selectedInstanceId, newContent);
       _clearHighlight();
       _createHighlight(selectedObject, selectedInstanceId);
+
+      // Log JSON edit
+      const changes = _computeDiff(originalContent, newContent);
+      for (const c of changes) {
+        await _logAction(c.type, {
+          sourceFile: null,
+          objectLabel: label,
+          lineStart: c.lineStart,
+          lineEnd: c.lineEnd,
+          codeSnippet: c.code || c.newCode,
+          description: `${label} — JSON ${c.type} (geçici)`,
+        });
+      }
+      originalContent = newContent;
       _showToast('Kaydedildi (geçici — sayfa yenilenince sıfırlanır)', '#f9e2af');
       return;
     }
 
     // Save source file to disk
-    await _saveSourceFile(selectedSourceFile, content);
+    await _saveSourceFile(selectedSourceFile, newContent);
+
+    // Compute diff and log each change
+    const changes = _computeDiff(originalContent, newContent);
+    for (const c of changes) {
+      const detailParts = [];
+      if (c.type === 'silindi') {
+        detailParts.push(`${selectedSourceFile} satır ${c.lineStart}-${c.lineEnd} silindi`);
+      } else if (c.type === 'eklendi') {
+        detailParts.push(`${selectedSourceFile} satır ${c.lineStart} kod eklendi`);
+      } else {
+        detailParts.push(`${selectedSourceFile} satır ${c.lineStart}-${c.lineEnd} değiştirildi`);
+      }
+      await _logAction(c.type, {
+        sourceFile: selectedSourceFile,
+        objectLabel: label,
+        lineStart: c.lineStart,
+        lineEnd: c.lineEnd,
+        codeSnippet: c.code || c.newCode,
+        description: detailParts.join(' — ') + `\nEski: ${(c.code || '').substring(0, 150)}\nYeni: ${(c.newCode || c.code || '').substring(0, 150)}`,
+      });
+    }
+    originalContent = newContent;
 
     // Also try to apply JSON changes if the content contains JSON
     try {
-      const trimmed = content.trim();
+      const trimmed = newContent.trim();
       if (trimmed.startsWith('{') || trimmed.startsWith('//')) {
         const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
@@ -499,31 +730,73 @@ async function _onDeleteConfirm() {
 
     // Hide object in scene
     if (selectedObject.isInstancedMesh) {
-      // For InstancedMesh, mark the mesh as having deleted instances
-      // We can't truly delete a single instance, so hide the whole mesh
       selectedObject.userData._editorDeleted = true;
       selectedObject.visible = false;
     } else {
       selectedObject.visible = false;
       selectedObject.userData._editorDeleted = true;
-      // Also hide children
       selectedObject.traverse((c) => { if (c.isMesh) c.visible = false; });
     }
 
-    // Comment out relevant lines in source file
+    // Register deletion persistently via API
+    const pos = new THREE.Vector3();
+    if (selectedObject.isInstancedMesh && selectedInstanceId >= 0) {
+      const matrix = new THREE.Matrix4();
+      selectedObject.getMatrixAt(selectedInstanceId, matrix);
+      pos.setFromMatrixPosition(matrix);
+    } else {
+      selectedObject.getWorldPosition(pos);
+    }
+
+    await fetch('/api/deletions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        label,
+        sourceFile: selectedSourceFile,
+        isInstancedMesh: !!selectedObject.isInstancedMesh,
+        instanceId: selectedInstanceId,
+        position: { x: +pos.x.toFixed(2), y: +pos.y.toFixed(2), z: +pos.z.toFixed(2) },
+        meshType: selectedObject.isInstancedMesh ? _meshTypeName(selectedObject) : (selectedObject.geometry ? selectedObject.geometry.type : null),
+      }),
+    });
+
+    // Try source-code commenting as well (best-effort)
+    let deletedLines = null;
     if (selectedSourceFile) {
       const content = await _loadSourceFile(selectedSourceFile);
       const range = _findObjectLineRange(content, selectedObject, selectedInstanceId);
 
       if (range) {
+        const lines = content.split('\n');
+        const deletedCode = lines.slice(range.startLine - 1, range.endLine).join('\n');
         await _commentLines(selectedSourceFile, range.startLine, range.endLine);
-        _showToast('Silindi! ' + label + ' → yorum satırı: ' + selectedSourceFile + ' L' + range.startLine + '-' + range.endLine, '#f38ba8');
+        deletedLines = { start: range.startLine, end: range.endLine, code: deletedCode };
+        _showToast('Silindi! ' + label + ' → kaynak kod yorum satırı + kayıt.', '#f38ba8');
       } else {
-        // We can save the modified source, but the user needs to manually comment
-        _showToast('Objeyi gizledi. Kaynak kodda otomatik satır bulunamadı — manuel yorum yapın.', '#f9e2af');
+        _showToast('Silindi! ' + label + ' → kalıcı kayıt eklendi (sayfa yenilense de gizli kalır).', '#a6e3a1');
       }
     } else {
-      _showToast(label + ' gizlendi (kaynak dosya bilinmiyor).', '#f9e2af');
+      _showToast('Silindi! ' + label + ' → kalıcı kayıt eklendi.', '#a6e3a1');
+    }
+
+    // Log the deletion action
+    if (deletedLines) {
+      await _logAction('silindi', {
+        sourceFile: selectedSourceFile,
+        objectLabel: label,
+        lineStart: deletedLines.start,
+        lineEnd: deletedLines.end,
+        codeSnippet: deletedLines.code.substring(0, 300),
+        description: `${selectedSourceFile} satır ${deletedLines.start}-${deletedLines.end} silindi — ${label}`,
+      });
+    } else {
+      await _logAction('silindi', {
+        sourceFile: selectedSourceFile,
+        objectLabel: label,
+        codeSnippet: `Pozisyon: ${pos.x}, ${pos.y}, ${pos.z} | Mesh: ${selectedObject.isInstancedMesh ? _meshTypeName(selectedObject) : (selectedObject.geometry ? selectedObject.geometry.type : '?')}`,
+        description: `${selectedSourceFile || 'bilinmeyen dosya'} — ${label} sahneden gizlendi (kalıcı kayıt)`,
+      });
     }
 
     _clearHighlight();
@@ -533,6 +806,57 @@ async function _onDeleteConfirm() {
   } catch (err) {
     _showToast('Silme hatası: ' + err.message, '#f38ba8');
   }
+}
+
+// ── Internal: History panel ─────────────────────────────────
+
+async function _toggleHistory() {
+  const panel = modalEl.historyPanel;
+  if (panel.classList.contains('open')) {
+    panel.classList.remove('open');
+    return;
+  }
+  panel.classList.add('open');
+  await _loadHistory();
+}
+
+async function _loadHistory() {
+  const panel = modalEl.historyPanel;
+  panel.innerHTML = '<div class="feHistoryItem" style="color:#6c7086">Yükleniyor...</div>';
+  try {
+    const res = await fetch('/api/editor-actions?limit=50');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const actions = await res.json();
+    if (!actions.length) {
+      panel.innerHTML = '<div class="feHistoryItem" style="color:#6c7086">Henüz kayıt yok.</div>';
+      return;
+    }
+    panel.innerHTML = actions.reverse().map(a => {
+      const opClass = a.operation.includes('AI') ? 'AI' :
+        a.operation === 'silindi' ? 'silindi' :
+        a.operation === 'eklendi' ? 'eklendi' :
+        a.operation === 'değiştirildi' ? 'değiştirildi' : '';
+      const time = new Date(a.timestamp).toLocaleTimeString('tr-TR');
+      const fileInfo = a.sourceFile ? `<span style="color:#89b4fa">${a.sourceFile}</span>` : '';
+      const lineInfo = a.lineStart ? ` satır ${a.lineStart}${a.lineEnd && a.lineEnd !== a.lineStart ? '-' + a.lineEnd : ''}` : '';
+      const codeHtml = a.codeSnippet
+        ? `<div class="feHistoryCode">${_escapeHTML(a.codeSnippet.substring(0, 200))}</div>`
+        : '';
+      return `<div class="feHistoryItem ${opClass}">
+        <div class="feHistoryTime">${time} — <b>${a.operation}</b></div>
+        <div class="feHistoryDesc">${fileInfo}${lineInfo} — ${_escapeHTML(a.objectLabel || '')}</div>
+        ${codeHtml}
+      </div>`;
+    }).join('');
+  } catch (err) {
+    panel.innerHTML = '<div class="feHistoryItem" style="color:#f38ba8">Yüklenemedi: ' + err.message + '</div>';
+  }
+}
+
+function _escapeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 // ── Internal: AI panel ──────────────────────────────────────
@@ -559,9 +883,11 @@ async function _onAISend() {
   modalEl.aiStatus.textContent = 'İstek kuyruğa alınıyor...';
   modalEl.aiSend.disabled = true;
 
+  const label = _objectLabel(selectedObject, selectedInstanceId);
+
   try {
     const payload = {
-      currentState: { sourceFile: selectedSourceFile, objectLabel: _objectLabel(selectedObject, selectedInstanceId) },
+      currentState: { sourceFile: selectedSourceFile, objectLabel: label },
       userPrompt: prompt,
     };
     const res = await fetch('/api/ai-edit', {
@@ -570,6 +896,15 @@ async function _onAISend() {
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    // Log AI request
+    await _logAction('AI istek', {
+      sourceFile: selectedSourceFile,
+      objectLabel: label,
+      codeSnippet: prompt,
+      description: `${selectedSourceFile || 'bilinmeyen'} — ${label} için AI isteği gönderildi: "${prompt}"`,
+    });
+
     modalEl.aiStatus.textContent = 'İstek kuyrukta. AI yanıtı bekleniyor...';
     _startAIPoll();
   } catch (err) {
@@ -581,6 +916,7 @@ async function _onAISend() {
 function _startAIPoll() {
   if (aiPollTimer) clearInterval(aiPollTimer);
   let elapsed = 0;
+  const label = _objectLabel(selectedObject, selectedInstanceId);
   aiPollTimer = setInterval(async () => {
     elapsed += 3;
     try {
@@ -589,19 +925,33 @@ function _startAIPoll() {
         const data = await res.json();
         clearInterval(aiPollTimer);
         aiPollTimer = null;
-        if (data.newState && typeof data.newState === 'string') {
-          modalEl.textarea.value = data.newState;
-        } else if (data.newState) {
-          modalEl.textarea.value = JSON.stringify(data.newState, null, 2);
+        const aiResponse = data.newState && typeof data.newState === 'string'
+          ? data.newState
+          : (data.newState ? JSON.stringify(data.newState, null, 2) : '');
+        if (aiResponse) {
+          modalEl.textarea.value = aiResponse;
         }
         modalEl.aiStatus.textContent = 'AI yanıtı geldi! Gözden geçir ve Kaydet.';
         modalEl.aiSend.disabled = false;
         _showToast('AI yanıtı alındı', '#89b4fa');
+
+        // Log AI response
+        await _logAction('AI yanıt', {
+          sourceFile: selectedSourceFile,
+          objectLabel: label,
+          codeSnippet: aiResponse.substring(0, 500),
+          description: `${selectedSourceFile || 'bilinmeyen'} — ${label} için AI yanıtı alındı`,
+        });
       } else if (elapsed >= 30) {
         clearInterval(aiPollTimer);
         aiPollTimer = null;
         modalEl.aiStatus.textContent = 'Zaman aşımı (30sn).';
         modalEl.aiSend.disabled = false;
+        await _logAction('AI zaman aşımı', {
+          sourceFile: selectedSourceFile,
+          objectLabel: label,
+          description: `${selectedSourceFile || 'bilinmeyen'} — ${label} için AI yanıtı 30sn içinde gelmedi`,
+        });
       }
     } catch {
       if (elapsed >= 30) {

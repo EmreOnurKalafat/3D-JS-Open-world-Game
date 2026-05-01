@@ -74,6 +74,7 @@ function box(scene, addPhys, sx, sy, sz, lx, ly, lz, mat, mass = 0) {
   m.scale.set(sx, sy, sz);
   m.position.set(wx(lx), ly, wz(lz));
   m.castShadow = true; m.receiveShadow = true;
+  m.userData.sourceFile = 'client/policeStation.js';
   scene.add(m);
 
   if (addPhys) {
@@ -96,6 +97,7 @@ function add(scene, g, mat, lx, ly, lz, ry, scale) {
   if (ry) m.rotation.y = ry;
   if (scale) m.scale.set(scale.sx, scale.sy, scale.sz);
   m.castShadow = true; m.receiveShadow = true;
+  m.userData.sourceFile = 'client/policeStation.js';
   scene.add(m);
   return m;
 }
@@ -107,6 +109,7 @@ function addCyl(scene, rt, rb, h, segs, mat, lx, ly, lz) {
   m.scale.set(rt * 2, h, rb * 2);
   m.position.set(wx(lx), ly, wz(lz));
   m.castShadow = true; m.receiveShadow = true;
+  m.userData.sourceFile = 'client/policeStation.js';
   scene.add(m);
   return m;
 }
@@ -230,6 +233,8 @@ function detailedPoliceCar(scene, lx, lz, ry) {
 function buildHelicopter(scene, lx, ly, lz) {
   const hg = new THREE.Group();
   hg.position.set(wx(lx), ly, wz(lz));
+  hg.userData.sourceFile = 'client/policeStation.js';
+  hg.name = 'police_helicopter';
 
   // Fuselage
   const body = new THREE.Mesh(geo.box_1x1x1, heliBody);

@@ -1,0 +1,90 @@
+[
+  {
+    "id": "mon4spebl229",
+    "timestamp": "2026-05-01T16:32:45.971Z",
+    "operation": "silindi",
+    "sourceFile": null,
+    "objectLabel": "Box",
+    "lineStart": null,
+    "lineEnd": null,
+    "codeSnippet": "Pozisyon: 180, 6.1, -25.619999999999997 | Mesh: BoxGeometry",
+    "detail": "bilinmeyen dosya — Box sahneden gizlendi (kalıcı kayıt)"
+  },
+  {
+    "id": "mon4wvmtmzy7",
+    "timestamp": "2026-05-01T16:36:00.677Z",
+    "operation": "silindi",
+    "sourceFile": "client/world.js",
+    "objectLabel": "BufferGeometry #0",
+    "lineStart": null,
+    "lineEnd": null,
+    "codeSnippet": "Pozisyon: 22.15291404724121, 0, 120.55528259277344 | Mesh: BufferGeometry",
+    "detail": "client/world.js — BufferGeometry #0 sahneden gizlendi (kalıcı kayıt)"
+  },
+  {
+    "id": "mon4y22ncvfv",
+    "timestamp": "2026-05-01T16:36:55.679Z",
+    "operation": "AI istek",
+    "sourceFile": "client/world.js",
+    "objectLabel": "BufferGeometry #0",
+    "lineStart": null,
+    "lineEnd": null,
+    "codeSnippet": "rengini değiştir",
+    "detail": "client/world.js — BufferGeometry #0 için AI isteği gönderildi: \"rengini değiştir\""
+  },
+  {
+    "id": "mon4yp8bati2",
+    "timestamp": "2026-05-01T16:37:25.691Z",
+    "operation": "AI zaman aşımı",
+    "sourceFile": "client/world.js",
+    "objectLabel": "BufferGeometry #0",
+    "lineStart": null,
+    "lineEnd": null,
+    "codeSnippet": null,
+    "detail": "client/world.js — BufferGeometry #0 için AI yanıtı 30sn içinde gelmedi"
+  },
+  {
+    "id": "mon52pgfsbdu",
+    "timestamp": "2026-05-01T16:40:32.607Z",
+    "operation": "silindi",
+    "sourceFile": null,
+    "objectLabel": "Box",
+    "lineStart": null,
+    "lineEnd": null,
+    "codeSnippet": "Pozisyon: -242, 0.7, 29.45 | Mesh: BoxGeometry",
+    "detail": "bilinmeyen dosya — Box sahneden gizlendi (kalıcı kayıt)"
+  },
+  {
+    "id": "mon52rms84lr",
+    "timestamp": "2026-05-01T16:40:35.428Z",
+    "operation": "silindi",
+    "sourceFile": null,
+    "objectLabel": "Box",
+    "lineStart": null,
+    "lineEnd": null,
+    "codeSnippet": "Pozisyon: -242, 0.45, 29.7 | Mesh: BoxGeometry",
+    "detail": "bilinmeyen dosya — Box sahneden gizlendi (kalıcı kayıt)"
+  },
+  {
+    "id": "mon52wcuumd8",
+    "timestamp": "2026-05-01T16:40:41.550Z",
+    "operation": "silindi",
+    "sourceFile": null,
+    "objectLabel": "Box",
+    "lineStart": null,
+    "lineEnd": null,
+    "codeSnippet": "Pozisyon: -242, 0.7, 33.25 | Mesh: BoxGeometry",
+    "detail": "bilinmeyen dosya — Box sahneden gizlendi (kalıcı kayıt)"
+  },
+  {
+    "id": "mon52y6qgebv",
+    "timestamp": "2026-05-01T16:40:43.922Z",
+    "operation": "silindi",
+    "sourceFile": null,
+    "objectLabel": "Box",
+    "lineStart": null,
+    "lineEnd": null,
+    "codeSnippet": "Pozisyon: -242, 0.45, 33.5 | Mesh: BoxGeometry",
+    "detail": "bilinmeyen dosya — Box sahneden gizlendi (kalıcı kayıt)"
+  }
+]

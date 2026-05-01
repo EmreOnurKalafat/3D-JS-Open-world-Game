@@ -123,6 +123,7 @@ function buildMerged(scene) {
     const mesh = new THREE.Mesh(merged, group.material);
     mesh.receiveShadow = true;
     mesh.name = key;
+    mesh.userData.sourceFile = 'client/world.js';
     scene.add(mesh);
   }
   mergeGroups.clear();
@@ -898,6 +899,7 @@ function createPark(scene, occ) {
   park.rotation.x = -Math.PI / 2;
   park.position.set(cx, 0.07, cz);
   park.receiveShadow = true;
+  park.userData.sourceFile = 'client/world.js';
   scene.add(park);
 
   // Park trees via InstancedMesh (same pattern as street trees)
@@ -963,6 +965,7 @@ function placeLandmarks(scene, occ) {
   const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 14, 8),
     new THREE.MeshLambertMaterial({ color: 0xCCCCCC }));
   ant.position.set(sx, 92, sz);
+  ant.userData.sourceFile = 'client/world.js';
   scene.add(ant);
 
   // Hospital
@@ -1014,6 +1017,7 @@ function createBeachWater(scene) {
   beach.rotation.x = -Math.PI / 2;
   beach.position.set(0, 0.04, beachZ);
   beach.receiveShadow = true;
+  beach.userData.sourceFile = 'client/world.js';
   scene.add(beach);
 
   const { texture, canvas, ctx } = makeWaterTexture();
@@ -1026,6 +1030,7 @@ function createBeachWater(scene) {
   water.rotation.x = -Math.PI / 2;
   water.position.set(0, WORLD.WATER_Y, beachZ - beachDepth / 2 - 75);
   water.receiveShadow = true;
+  water.userData.sourceFile = 'client/world.js';
   scene.add(water);
   cityData.waterMesh = water;
   cityData.waterData = { canvas, ctx, texture };

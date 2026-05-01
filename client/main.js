@@ -12,7 +12,7 @@ import {
   toggleDebug,
 } from '/client/physics.js';
 import { generateCity, updateWorld, cityData, updateBuildingTexturesForPhase, updateBuildingLighting } from '/client/world.js';
-import { initFreecamEditor, setFreecamActive, updateFreecamEditor, onFreecamClick, isEditorModalOpen } from '/client/freecamEditor.js';
+import { initFreecamEditor, setFreecamActive, updateFreecamEditor, onFreecamClick, isEditorModalOpen, applyDeletions } from '/client/freecamEditor.js';
 
 // --- Global state ---
 const DAY_CYCLE_DURATION = 20 * 60; // 20 real minutes for full cycle
@@ -596,6 +596,10 @@ function spawnTestBox() {
  * Keyboard handler for debug and test keys
  */
 function onKeyDown(event) {
+  // Ignore key events when user is typing in an input or textarea
+  const tag = event.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
   // U = toggle freecam
   if (event.key === 'u' || event.key === 'U') {
     toggleFreecam();
@@ -711,6 +715,9 @@ function boot() {
 
   // Init FreeCam editor — all meshes are automatically targetable
   initFreecamEditor(scene, camera, renderer.domElement);
+
+  // Re-apply persistent deletions from editor
+  applyDeletions();
 
   window.addEventListener('resize', onResize);
   window.addEventListener('keydown', onKeyDown);

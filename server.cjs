@@ -145,6 +145,119 @@ app.post('/api/comment-lines', (req, res) => {
   }
 });
 
+// Editor Deletion Registry — persistent deletion tracking for FreeCam editor
+const DELETIONS_FILE = path.join(__dirname, 'data', 'editor_deletions.json');
+
+function readDeletions() {
+  try {
+    if (fs.existsSync(DELETIONS_FILE)) {
+      return JSON.parse(fs.readFileSync(DELETIONS_FILE, 'utf-8'));
+    }
+  } catch (_) { /* ignore */ }
+  return [];
+}
+
+function writeDeletions(deletions) {
+  fs.writeFileSync(DELETIONS_FILE, JSON.stringify(deletions, null, 2), 'utf-8');
+}
+
+app.get('/api/deletions', (_req, res) => {
+  res.json(readDeletions());
+});
+
+app.post('/api/deletions', (req, res) => {
+  try {
+    const { label, sourceFile, isInstancedMesh, instanceId, position, meshType } = req.body;
+    if (!label) return res.status(400).json({ error: 'Missing label' });
+    const deletions = readDeletions();
+    deletions.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      label,
+      sourceFile: sourceFile || null,
+      isInstancedMesh: !!isInstancedMesh,
+      instanceId: instanceId ?? -1,
+      position: position || null,
+      meshType: meshType || null,
+      timestamp: Date.now(),
+    });
+    writeDeletions(deletions);
+    console.log('[SERVER] Deletion registered:', label);
+    res.json({ status: 'registered', count: deletions.length });
+  } catch (err) {
+    console.error('[ERROR][server] POST /api/deletions:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.delete('/api/deletions', (req, res) => {
+  try {
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: 'Missing id' });
+    let deletions = readDeletions();
+    deletions = deletions.filter(d => d.id !== id);
+    writeDeletions(deletions);
+    res.json({ status: 'removed', count: deletions.length });
+  } catch (err) {
+    console.error('[ERROR][server] DELETE /api/deletions:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Editor Action Log — detailed history of all editor operations
+const ACTIONS_FILE = path.join(__dirname, 'data', 'editor_actions.json');
+
+function readActions() {
+  try {
+    if (fs.existsSync(ACTIONS_FILE)) {
+      return JSON.parse(fs.readFileSync(ACTIONS_FILE, 'utf-8'));
+    }
+  } catch (_) { /* ignore */ }
+  return [];
+}
+
+function writeActions(actions) {
+  fs.writeFileSync(ACTIONS_FILE, JSON.stringify(actions, null, 2), 'utf-8');
+}
+
+app.get('/api/editor-actions', (_req, res) => {
+  try {
+    const actions = readActions();
+    const limit = parseInt(_req.query.limit) || 100;
+    res.json(actions.slice(-limit));
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/editor-actions', (req, res) => {
+  try {
+    const { operation, sourceFile, objectLabel, detail, lineStart, lineEnd, codeSnippet } = req.body;
+    if (!operation) return res.status(400).json({ error: 'Missing operation' });
+    const actions = readActions();
+    actions.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      timestamp: new Date().toISOString(),
+      operation,
+      sourceFile: sourceFile || null,
+      objectLabel: objectLabel || null,
+      lineStart: lineStart || null,
+      lineEnd: lineEnd || null,
+      codeSnippet: codeSnippet || null,
+      detail: detail || null,
+    });
+    // Keep last 500 entries max
+    if (actions.length > 500) {
+      actions.splice(0, actions.length - 500);
+    }
+    writeActions(actions);
+    console.log('[SERVER] Action logged:', operation, sourceFile || '', objectLabel || '');
+    res.json({ status: 'logged' });
+  } catch (err) {
+    console.error('[ERROR][server] POST /api/editor-actions:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`[SERVER] Listening on port ${PORT}`);
