@@ -1,14 +1,13 @@
 // client/core/renderManager.js — Scene, camera, renderer, lights, sky setup
-// All configurable values are in data/environment/skyConfig.js.
+// All configurable values are in data/config/environment.js.
 // Sun and cloud geometry comes from assets/prefabs/environment/ prefabs.
 
 import * as THREE from 'three';
 import { lerp } from '../../shared/utils.js';
 import { makeSkyGradient } from '../builders/textureBuilder.js';
-import { SKY, LIGHT, DAY_CYCLE, GROUND } from '../../data/environment/skyConfig.js';
-import { CLOUD } from '../../data/environment/skyConfig.js';
-import { createSun } from '../../assets/prefabs/environment/gunes.js';
-import { createCloud } from '../../assets/prefabs/environment/bulut.js';
+import { SKY, LIGHT, DAY_CYCLE, GROUND, CLOUD } from '/config/environment.js';
+import { createSun } from '/assets/environment/gunes.js';
+import { createCloud } from '/assets/environment/bulut.js';
 
 // --- Global render state ---
 export const DAY_CYCLE_DURATION = DAY_CYCLE.durationSeconds;

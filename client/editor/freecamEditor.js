@@ -178,20 +178,20 @@ function _determineSourceFile(obj) {
   let cur = obj;
   while (cur) {
     if (cur.userData && cur.userData.sourceFile) return cur.userData.sourceFile;
-    if (cur.name && cur.name.toLowerCase().includes('hospital')) return 'client/zones/zone_hospital.js';
+    if (cur.name && cur.name.toLowerCase().includes('hospital')) return 'assets/complexes/hospital/index.js';
 
     // Check userData.type on every ancestor
     if (cur.userData && cur.userData.type) {
-      if (cur.userData.type === 'police') return 'client/zones/zone_police.js';
-      if (KNOWN_TYPES.includes(cur.userData.type)) return 'client/builders/entityBuilder.js';
+      if (cur.userData.type === 'police') return 'assets/complexes/police/index.js';
+      if (KNOWN_TYPES.includes(cur.userData.type)) return 'assets/';
     }
 
     // Check parent name for clues about source
     if (cur.name) {
       const n = cur.name.toLowerCase();
-      if (n.includes('hospital')) return 'client/zones/zone_hospital.js';
-      if (n.includes('police')) return 'client/zones/zone_police.js';
-      if (n.includes('building') || n.includes('tree') || n.includes('vehicle') || n.includes('character')) return 'client/builders/entityBuilder.js';
+      if (n.includes('hospital')) return 'assets/complexes/hospital/index.js';
+      if (n.includes('police')) return 'assets/complexes/police/index.js';
+      if (n.includes('building') || n.includes('tree') || n.includes('vehicle') || n.includes('character')) return 'assets/';
     }
 
     cur = cur.parent;

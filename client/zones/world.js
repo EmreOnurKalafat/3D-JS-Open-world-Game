@@ -7,20 +7,21 @@ import { WORLD } from '/shared/constants.js';
 import { OccupancyGrid } from '../../shared/utils.js';
 import { getPhysicsWorld } from '../core/physicsManager.js';
 import { ChunkManager } from '../core/chunkManager.js';
-import { buildPoliceStationComplex, POLICE_GRID_COL, POLICE_GRID_ROW } from './zone_police.js';
-import { createHospital, HOSPITAL_GRID_COL, HOSPITAL_GRID_ROW } from './zone_hospital.js';
-import { getZone, CUSTOM_BUILDINGS } from '../../data/zones/worldData.js';
-import { createTreeInstances } from '../../assets/prefabs/props/agacManager.js';
-import { createParkedCarInstances } from '../../assets/prefabs/vehicles/parkEdilmisArabaManager.js';
+import { buildPoliceStationComplex, POLICE_GRID_COL, POLICE_GRID_ROW } from '/assets/complexes/police/index.js';
+import { createHospital, HOSPITAL_GRID_COL, HOSPITAL_GRID_ROW } from '/assets/complexes/hospital/index.js';
+import { getZone, CUSTOM_BUILDINGS } from '/config/world.js';
+import { createTreeInstances } from '../builders/treeInstancedManager.js';
+import { createParkedCarInstances } from '../builders/carInstancedManager.js';
 import {
   placeZoneBuildings, placeCustomBuilding, placeLandmarks,
-  initBuildingLights, updateBuildingLighting,
-  updateBuildingTexturesForPhase,
-} from '../builders/buildingManager.js';
+} from '../builders/buildingOrchestrator.js';
+import {
+  initBuildingLights, updateBuildingLighting, updateBuildingTexturesForPhase,
+} from '../builders/buildingFacadeManager.js';
 import { buildRoadNetwork } from '../builders/roadNetworkBuilder.js';
 import { createPark } from '../builders/parkBuilder.js';
 import { createBeachWater, animateWater } from '../builders/environmentBuilder.js';
-import { WATER_ANIM } from '../../data/environment/beachWaterConfig.js';
+import { WATER_ANIM } from '/config/beachWater.js';
 import { placeFurniture } from '../builders/furnitureBuilder.js';
 
 // Re-exports for main.js
@@ -77,7 +78,7 @@ export function generateCity(scene) {
   buildRoadNetwork(scene, { GRID, CELL, WH, ROAD, BLOCK, HALF, SW, EXT, isSpecialCell });
 
   // Phase 2 — Special zones + landmarks
-  buildPoliceStationComplex(scene, occ);
+  buildPoliceStationComplex(scene, occ, cityData);
   try {
     const hospitalResult = createHospital(scene, getPhysicsWorld());
     cityData.hospitalGroup = hospitalResult.group;
@@ -90,7 +91,7 @@ export function generateCity(scene) {
     placeCustomBuilding(scene, occ, {
       ...bDef,
       buildingsArr: cityData.buildings,
-      sourceFile: bDef.sourceFile || 'data/zones/worldData.js',
+      sourceFile: bDef.sourceFile || 'data/config/world.js',
     });
   }
 

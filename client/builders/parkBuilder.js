@@ -2,12 +2,12 @@
 // Tree rendering is delegated to agacManager for InstancedMesh performance.
 // userData.sourceFile = SRC on the park ground mesh for freecam editor.
 //
-// Pattern: Read config from data/environment/parkConfig.js →
+// Pattern: Read config from data/config/park.js →
 //          create ground plane → generate tree coords → return coords
 
 import * as THREE from 'three';
 import { makeGrassTexture } from './textureBuilder.js';
-import { PARK, PARK_TREE } from '../../data/environment/parkConfig.js';
+import { PARK, PARK_TREE } from '/config/park.js';
 
 const SRC = 'client/builders/parkBuilder.js';
 

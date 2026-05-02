@@ -3,12 +3,12 @@
 import * as THREE from 'three';
 import { clamp } from '../../shared/utils.js';
 import { makeSkyGradient } from '../builders/textureBuilder.js';
-import { DAY_CYCLE, LIGHT } from '../../data/environment/skyConfig.js';
+import { DAY_CYCLE, LIGHT } from '/config/environment.js';
 import {
   initPhysicsWorld, createGroundPlane, stepPhysics,
 } from './physicsManager.js';
 import {
-  generateCity, updateWorld, cityData,
+  generateCity, updateWorld,
   updateBuildingTexturesForPhase, updateBuildingLighting,
 } from '../zones/world.js';
 import {
@@ -31,14 +31,6 @@ const PHASE_LABELS = { day: 'Gündüz', night: 'Gece', sunset: 'Gün Batımı', 
 let fpsEl, clockTimeEl, clockPhaseLabel;
 let smoothedFPS = 60, frameCount = 0, lastFPSTime = performance.now();
 let clock = new THREE.Clock();
-
-// --- Stub placeholders for future phases ---
-const stubSystems = {
-  player: () => {}, vehicle: () => {}, combat: () => {},
-  npc: () => {}, police: () => {}, economy: () => {},
-  particles: () => {}, audio: () => {}, network: () => {},
-  hud: () => {}, minimap: () => {},
-};
 
 function updateDayNight(wrappedSeconds) {
   const { phase, intensity } = computeDayPhase(wrappedSeconds);
@@ -86,21 +78,6 @@ function update(delta, elapsed) {
       stepPhysics(delta);
     }
     updateWorld(elapsed);
-
-    if (cityData.chunkMgr) {
-      cityData.chunkMgr.update(camera.position);
-    }
-    stubSystems.player(delta);
-    stubSystems.vehicle(delta);
-    stubSystems.combat(delta);
-    stubSystems.npc(delta);
-    stubSystems.police(delta);
-    stubSystems.economy(delta);
-    stubSystems.particles(delta);
-    stubSystems.audio(delta);
-    stubSystems.network(delta);
-    stubSystems.hud();
-    stubSystems.minimap();
   } catch (err) {
     console.error('[ERROR][main] update loop:', err);
   }
@@ -126,7 +103,7 @@ function gameLoop() {
     }
 
     const wrapped = ((effectiveElapsed % DAY_CYCLE_DURATION) + DAY_CYCLE_DURATION) % DAY_CYCLE_DURATION;
-    const currentPhase = updateDayNight(wrapped);
+    updateDayNight(wrapped);
 
     const gameHour = (wrapped / DAY_CYCLE_DURATION) * 24;
     const h = Math.floor(gameHour) % 24;

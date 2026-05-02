@@ -2,14 +2,14 @@
 // Complete road infrastructure builder with deferred merge/instanced systems.
 // userData.sourceFile = SRC on all created meshes for freecam editor.
 //
-// Pattern: Read config from data/roads/roadNetworkConfig.js →
+// Pattern: Read config from data/config/roads.js →
 //          Accept grid params → build all road geometry data →
 //          batch into merged meshes + InstancedMesh (crosswalks) → scene.
 
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { makeSidewalkTexture } from './textureBuilder.js';
-import { ROAD as RD, SIDEWALK, BLOCK_FILL, MARKING, CROSSWALK } from '../../data/roads/roadNetworkConfig.js';
+import { ROAD as RD, SIDEWALK, BLOCK_FILL, MARKING, CROSSWALK } from '/config/roads.js';
 
 const SRC = 'client/builders/roadNetworkBuilder.js';
 

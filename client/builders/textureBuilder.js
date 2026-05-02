@@ -46,51 +46,6 @@ export function makeSkyGradient(phase = 'day') {
   return texture;
 }
 
-/** Creates a road asphalt texture with lane markings */
-export function makeRoadTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 256;
-  const ctx = canvas.getContext('2d');
-
-  ctx.fillStyle = '#444444';
-  ctx.fillRect(0, 0, 256, 256);
-
-  // Asphalt noise
-  for (let i = 0; i < 800; i++) {
-    const x = Math.random() * 256;
-    const y = Math.random() * 256;
-    const shade = 60 + Math.random() * 30;
-    ctx.fillStyle = `rgb(${shade},${shade},${shade})`;
-    ctx.fillRect(x, y, 2, 2);
-  }
-
-  // Center dashed line
-  ctx.strokeStyle = '#FFD700';
-  ctx.lineWidth = 4;
-  ctx.setLineDash([25, 20]);
-  ctx.beginPath();
-  ctx.moveTo(128, 0);
-  ctx.lineTo(128, 256);
-  ctx.stroke();
-
-  // Edge lines
-  ctx.setLineDash([]);
-  ctx.strokeStyle = '#FFFFFF';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(10, 0);
-  ctx.lineTo(10, 256);
-  ctx.moveTo(246, 0);
-  ctx.lineTo(246, 256);
-  ctx.stroke();
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  return texture;
-}
-
 /** Creates a concrete sidewalk texture */
 export function makeSidewalkTexture() {
   const canvas = document.createElement('canvas');
@@ -115,49 +70,6 @@ export function makeSidewalkTexture() {
     ctx.moveTo(0, y);
     ctx.lineTo(256, y);
     ctx.stroke();
-  }
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  return texture;
-}
-
-/** Creates a building facade texture with lit/unlit windows */
-export function makeBuildingTexture(floorCount = 6) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 128;
-  canvas.height = 256;
-  const ctx = canvas.getContext('2d');
-
-  // Facade base
-  ctx.fillStyle = '#3D3D3D';
-  ctx.fillRect(0, 0, 128, 256);
-
-  // Horizontal lines between floors
-  ctx.strokeStyle = '#2A2A2A';
-  ctx.lineWidth = 3;
-  const floorH = 256 / floorCount;
-  for (let f = 0; f <= floorCount; f++) {
-    ctx.beginPath();
-    ctx.moveTo(0, f * floorH);
-    ctx.lineTo(128, f * floorH);
-    ctx.stroke();
-  }
-
-  // Windows
-  for (let f = 0; f < floorCount; f++) {
-    for (let col = 0; col < 3; col++) {
-      const wx = 18 + col * 40;
-      const wy = f * floorH + 8;
-      const lit = Math.random() > 0.3;
-      ctx.fillStyle = lit ? '#FFEAA7' : '#1A1A2E';
-      ctx.fillRect(wx, wy, 28, 20);
-      // Window frame
-      ctx.strokeStyle = '#222';
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(wx, wy, 28, 20);
-    }
   }
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -238,30 +150,6 @@ export function makeWaterTexture() {
   texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(4, 4);
   return { texture, canvas, ctx };
-}
-
-/** Creates a car paint texture with subtle highlight */
-export function makeCarPaintTexture(color = '#FF0000') {
-  const canvas = document.createElement('canvas');
-  canvas.width = 128;
-  canvas.height = 128;
-  const ctx = canvas.getContext('2d');
-
-  ctx.fillStyle = color;
-  ctx.fillRect(0, 0, 128, 128);
-
-  // Highlight stripe
-  const gradient = ctx.createLinearGradient(0, 0, 0, 128);
-  gradient.addColorStop(0, 'rgba(255,255,255,0.3)');
-  gradient.addColorStop(0.3, 'rgba(255,255,255,0.05)');
-  gradient.addColorStop(0.5, 'rgba(0,0,0,0)');
-  gradient.addColorStop(0.7, 'rgba(255,255,255,0.05)');
-  gradient.addColorStop(1, 'rgba(255,255,255,0.15)');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, 128, 128);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  return texture;
 }
 
 /**
@@ -388,7 +276,7 @@ export function makeBuildingFacadeTexture(baseColor = '#8899AA') {
  * Smooth continuous transitions — call every few frames during day/night cycle.
  */
 export function updateBuildingFacadeContinuous(texData, nightFactor) {
-  const { canvas, ctx, baseColor, windowData } = texData;
+  const { ctx, baseColor, windowData } = texData;
   const nf = Math.max(0, Math.min(1, nightFactor));
   const litRatio = 0.30 + nf * 0.55;
   drawBuildingFacade(ctx, baseColor, litRatio, nf, windowData);
@@ -404,18 +292,3 @@ export function updateBuildingFacadeTexture(texData, phase) {
   updateBuildingFacadeContinuous(texData, map[phase] || 0);
 }
 
-/** Creates a minimap road element texture */
-export function makeMinimapRoadTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 16;
-  canvas.height = 16;
-  const ctx = canvas.getContext('2d');
-
-  ctx.fillStyle = '#666666';
-  ctx.fillRect(0, 0, 16, 16);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.magFilter = THREE.NearestFilter;
-  texture.minFilter = THREE.NearestFilter;
-  return texture;
-}

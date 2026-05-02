@@ -2,13 +2,13 @@
 // Water texture is animated each frame via the returned canvas/ctx/texture refs.
 // userData.sourceFile = SRC on all created meshes for freecam editor.
 //
-// Pattern: Read config from data/environment/beachWaterConfig.js →
+// Pattern: Read config from data/config/beachWater.js →
 //          create sand + water planes → write waterData to cityData
 
 import * as THREE from 'three';
 import { WORLD } from '../../shared/constants.js';
 import { makeSandTexture, makeWaterTexture } from './textureBuilder.js';
-import { BEACH, WATER, WATER_ANIM } from '../../data/environment/beachWaterConfig.js';
+import { BEACH, WATER, WATER_ANIM } from '/config/beachWater.js';
 
 const SRC = 'client/builders/environmentBuilder.js';
 

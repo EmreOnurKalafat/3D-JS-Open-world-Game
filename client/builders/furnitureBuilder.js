@@ -3,14 +3,14 @@
 // Delegates InstancedMesh creation to respective managers.
 // userData.sourceFile is set by each manager (NOT here).
 //
-// Pattern: Read placement config from data/furniture/furnitureConfig.js →
+// Pattern: Read placement config from data/config/furniture.js →
 //          collect coords from grid → delegate to managers
 
 import * as THREE from 'three';
-import { CAR_WEIGHTS, CAR_COLORS } from '../../data/zones/worldData.js';
-import { createLampInstances } from '../../assets/prefabs/props/sokakLambasiManager.js';
-import { createTrafficLightInstances } from '../../assets/prefabs/props/trafikIsigiManager.js';
-import { LAMP, TRAFFIC_LIGHT, STREET_TREE, PARKED_CAR } from '../../data/furniture/furnitureConfig.js';
+import { CAR_WEIGHTS, CAR_COLORS } from '/config/world.js';
+import { createLampInstances } from './lampInstancedManager.js';
+import { createTrafficLightInstances } from './trafficLightInstancedManager.js';
+import { LAMP, TRAFFIC_LIGHT, STREET_TREE, PARKED_CAR } from '/config/furniture.js';
 
 /**
  * Place lamps, traffic lights, street trees, and parked cars.
