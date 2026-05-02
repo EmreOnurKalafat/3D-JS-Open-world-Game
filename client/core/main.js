@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { clamp } from '../../shared/utils.js';
 import { makeSkyGradient } from '../builders/textureBuilder.js';
+import { DAY_CYCLE, LIGHT } from '../../data/environment/skyConfig.js';
 import {
   initPhysicsWorld, createGroundPlane, stepPhysics,
 } from './physicsManager.js';
@@ -52,9 +53,9 @@ function updateDayNight(wrappedSeconds) {
     skySphere.material.map = makeSkyGradient(phase);
     skySphere.material.needsUpdate = true;
 
-    const fogColors = { day: 0x87CEEB, sunset: 0xf4a261, night: 0x0a0a1a, dawn: 0xf4a261 };
-    scene.fog.color.set(fogColors[phase]);
-    scene.background = new THREE.Color(fogColors[phase]);
+    const fogColor = DAY_CYCLE.fogColors[phase] || DAY_CYCLE.fogColors.day;
+    scene.fog.color.set(fogColor);
+    scene.background = new THREE.Color(fogColor);
 
     updateBuildingTexturesForPhase(phase);
     // Update the exported dayPhase (it's a let binding, we access via renderManager)
@@ -65,8 +66,8 @@ function updateDayNight(wrappedSeconds) {
   sunLight.intensity = intensity;
   moonLight.intensity = nightFactor * 1.8;
 
-  ambientLight.intensity = phase === 'night' ? 0.15 : 0.4;
-  hemisphereLight.intensity = phase === 'night' ? 0.10 : 0.6;
+  ambientLight.intensity = phase === 'night' ? 0.15 : LIGHT.ambient.intensity;
+  hemisphereLight.intensity = phase === 'night' ? 0.10 : LIGHT.hemisphere.intensity;
 
   // Update clock phase label
   if (clockPhaseLabel) {

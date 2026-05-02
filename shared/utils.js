@@ -52,3 +52,27 @@ export function randomInt(min, max) {
 export function randomFloat(min, max) {
   return Math.random() * (max - min) + min;
 }
+
+/**
+ * Grid-based occupancy tracker — prevents object overlap during procedural placement.
+ * Cells are stored at 2× resolution for finer-grained queries.
+ */
+export class OccupancyGrid {
+  constructor() { this.cells = new Map(); }
+  fill(cx, cz, w, d, extra = 0) {
+    const hw = w / 2 + extra, hd = d / 2 + extra;
+    const sx = Math.round((cx - hw) * 2), ex = Math.round((cx + hw) * 2);
+    const sz = Math.round((cz - hd) * 2), ez = Math.round((cz + hd) * 2);
+    for (let x = sx; x <= ex; x++)
+      for (let z = sz; z <= ez; z++)
+        this.cells.set(`${x},${z}`, true);
+  }
+  isFree(x, z, gap = 1.0) {
+    const g = Math.round(gap * 2);
+    const sx = Math.round(x * 2), sz = Math.round(z * 2);
+    for (let dx = -g; dx <= g; dx++)
+      for (let dz = -g; dz <= g; dz++)
+        if (this.cells.has(`${sx + dx},${sz + dz}`)) return false;
+    return true;
+  }
+}

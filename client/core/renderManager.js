@@ -1,11 +1,17 @@
 // client/core/renderManager.js — Scene, camera, renderer, lights, sky setup
+// All configurable values are in data/environment/skyConfig.js.
+// Sun and cloud geometry comes from assets/prefabs/environment/ prefabs.
 
 import * as THREE from 'three';
 import { lerp } from '../../shared/utils.js';
 import { makeSkyGradient } from '../builders/textureBuilder.js';
+import { SKY, LIGHT, DAY_CYCLE, GROUND } from '../../data/environment/skyConfig.js';
+import { CLOUD } from '../../data/environment/skyConfig.js';
+import { createSun } from '../../assets/prefabs/environment/gunes.js';
+import { createCloud } from '../../assets/prefabs/environment/bulut.js';
 
 // --- Global render state ---
-export const DAY_CYCLE_DURATION = 20 * 60;
+export const DAY_CYCLE_DURATION = DAY_CYCLE.durationSeconds;
 export let scene, camera, renderer;
 export let skySphere, sunLight, moonLight, hemisphereLight, ambientLight;
 export let sunMesh;
@@ -22,8 +28,8 @@ export function initScene() {
   renderer.domElement.id = 'gameCanvas';
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x87CEEB);
-  scene.fog = new THREE.Fog(0x87CEEB, 150, 480);
+  scene.background = new THREE.Color(SKY.baseColor);
+  scene.fog = new THREE.Fog(SKY.fogColor, SKY.fogNear, SKY.fogFar);
 
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 900);
   camera.position.set(0, 80, 100);
@@ -31,25 +37,26 @@ export function initScene() {
 }
 
 export function initLights() {
-  ambientLight = new THREE.AmbientLight(0x404060, 0.4);
+  ambientLight = new THREE.AmbientLight(LIGHT.ambient.color, LIGHT.ambient.intensity);
   scene.add(ambientLight);
 
-  hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x3D2B1F, 0.6);
+  hemisphereLight = new THREE.HemisphereLight(
+    LIGHT.hemisphere.skyColor, LIGHT.hemisphere.groundColor, LIGHT.hemisphere.intensity);
   scene.add(hemisphereLight);
 
-  sunLight = new THREE.DirectionalLight(0xFFF5E0, 1.0);
-  sunLight.position.set(100, 150, 50);
+  sunLight = new THREE.DirectionalLight(LIGHT.sun.color, LIGHT.sun.intensity);
+  sunLight.position.set(LIGHT.sun.pos.x, LIGHT.sun.pos.y, LIGHT.sun.pos.z);
   sunLight.castShadow = false;
   scene.add(sunLight);
 
-  moonLight = new THREE.DirectionalLight(0x8899CC, 0);
-  moonLight.position.set(-50, 80, -30);
+  moonLight = new THREE.DirectionalLight(LIGHT.moon.color, LIGHT.moon.intensity);
+  moonLight.position.set(LIGHT.moon.pos.x, LIGHT.moon.pos.y, LIGHT.moon.pos.z);
   moonLight.castShadow = false;
   scene.add(moonLight);
 }
 
 export function initSky() {
-  const geo = new THREE.SphereGeometry(550, 32, 32);
+  const geo = new THREE.SphereGeometry(SKY.radius, SKY.segments, SKY.segments);
   const mat = new THREE.MeshBasicMaterial({
     map: makeSkyGradient('day'),
     side: THREE.BackSide,
@@ -61,58 +68,15 @@ export function initSky() {
 }
 
 export function initSun() {
-  const sunGeo = new THREE.SphereGeometry(10, 32, 32);
-  const sunMat = new THREE.MeshBasicMaterial({ color: 0xfff8dc });
-  sunMesh = new THREE.Mesh(sunGeo, sunMat);
+  const group = createSun();
+  sunMesh = group;
   sunMesh.visible = false;
   scene.add(sunMesh);
-
-  const glowGeo = new THREE.SphereGeometry(20, 32, 32);
-  const glowMat = new THREE.MeshBasicMaterial({
-    color: 0xffcc66, transparent: true, opacity: 0.15, depthWrite: false,
-  });
-  sunMesh.add(new THREE.Mesh(glowGeo, glowMat));
 }
 
 export function initClouds() {
-  const cloudMat = new THREE.MeshLambertMaterial({
-    color: 0xf0f0f0, transparent: true, opacity: 0.75, depthWrite: false,
-  });
-  const flatBottomMat = new THREE.MeshLambertMaterial({
-    color: 0xd8d8d8, transparent: true, opacity: 0.45, depthWrite: false,
-  });
-
-  for (let i = 0; i < 4; i++) {
-    const group = new THREE.Group();
-
-    const angle = Math.random() * Math.PI * 2;
-    const dist = 50 + Math.random() * 300;
-    const x = Math.cos(angle) * dist;
-    const z = Math.sin(angle) * dist;
-    const y = 140 + Math.random() * 180;
-
-    const puffCount = 2 + Math.floor(Math.random() * 4);
-    for (let p = 0; p < puffCount; p++) {
-      const r = 8 + Math.random() * 18;
-      const geo = new THREE.SphereGeometry(r, 7, 5);
-      const mesh = new THREE.Mesh(geo, cloudMat);
-      mesh.position.set((Math.random() - 0.5) * 35, (Math.random() - 0.5) * 12, (Math.random() - 0.5) * 35);
-      mesh.scale.set(1, 0.4 + Math.random() * 0.3, 1);
-      group.add(mesh);
-    }
-
-    const flatGeo = new THREE.SphereGeometry(20 + Math.random() * 15, 8, 4);
-    const flatMesh = new THREE.Mesh(flatGeo, flatBottomMat);
-    flatMesh.position.y -= 6;
-    flatMesh.scale.set(1.2, 0.15, 1.2);
-    group.add(flatMesh);
-
-    group.position.set(x, y, z);
-    group.userData = {
-      speed: 1 + Math.random() * 4, baseX: x, baseZ: z,
-      amplitude: 2 + Math.random() * 8, offset: Math.random() * Math.PI * 2,
-    };
-
+  for (let i = 0; i < CLOUD.groupCount; i++) {
+    const group = createCloud();
     scene.add(group);
     clouds.push(group);
   }
@@ -121,15 +85,15 @@ export function initClouds() {
 export function updateClouds(delta, elapsed) {
   for (const cloud of clouds) {
     const d = cloud.userData;
-    cloud.position.x = d.baseX + Math.sin(elapsed * 0.03 + d.offset) * d.amplitude * 5;
-    cloud.position.z = d.baseZ + Math.cos(elapsed * 0.04 + d.offset) * d.amplitude * 5;
-    cloud.position.y += Math.sin(elapsed * 0.5 + d.offset) * 0.2 * delta;
+    cloud.position.x = d.baseX + Math.sin(elapsed * CLOUD.animFreqXZ + d.offset) * d.amplitude * CLOUD.amplitudeMultiplier;
+    cloud.position.z = d.baseZ + Math.cos(elapsed * CLOUD.animFreqXZCos + d.offset) * d.amplitude * CLOUD.amplitudeMultiplier;
+    cloud.position.y += Math.sin(elapsed * CLOUD.animFreqY + d.offset) * CLOUD.animYDelta * delta;
   }
 }
 
 export function initGround() {
-  const geo = new THREE.PlaneGeometry(600, 600);
-  const mat = new THREE.MeshLambertMaterial({ color: 0x3D2B1F });
+  const geo = new THREE.PlaneGeometry(GROUND.size, GROUND.size);
+  const mat = new THREE.MeshLambertMaterial({ color: GROUND.color });
   const ground = new THREE.Mesh(geo, mat);
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = 0;
@@ -138,35 +102,33 @@ export function initGround() {
 }
 
 export function computeDayPhase(wrappedSeconds) {
-  const gameHour = (wrappedSeconds / DAY_CYCLE_DURATION) * 24;
-  let phase, intensity;
+  const gameHour = (wrappedSeconds / DAY_CYCLE.durationSeconds) * 24;
 
-  if (gameHour < 5)            { phase = 'night'; intensity = 0.15; }
-  else if (gameHour < 6)       { phase = 'dawn';  intensity = lerp(0.15, 0.3, (gameHour - 5) / 1); }
-  else if (gameHour < 7)       { phase = 'dawn';  intensity = lerp(0.3, 0.8, (gameHour - 6) / 1); }
-  else if (gameHour < 19)      { phase = 'day';   intensity = 1.0; }
-  else if (gameHour < 20)      { phase = 'sunset';intensity = lerp(1.0, 0.6, (gameHour - 19) / 1); }
-  else if (gameHour < 21)      { phase = 'night'; intensity = lerp(0.6, 0.15, (gameHour - 20) / 1); }
-  else                          { phase = 'night'; intensity = 0.15; }
-
-  return { phase, intensity };
+  for (const p of DAY_CYCLE.phases) {
+    if (gameHour >= p.start && gameHour < p.end) {
+      const t = (gameHour - p.start) / (p.end - p.start);
+      return { phase: p.phase, intensity: lerp(p.iStart, p.iEnd, t) };
+    }
+  }
+  return { phase: 'night', intensity: 0.15 };
 }
 
 export function computeNightFactor(gameHour) {
-  if (gameHour >= 21 || gameHour < 5) return 1.0;
-  if (gameHour >= 7 && gameHour < 19) return 0.0;
-  if (gameHour >= 5 && gameHour < 7) return 1.0 - (gameHour - 5) / 2;
-  if (gameHour >= 19 && gameHour < 21) return (gameHour - 19) / 2;
+  if (gameHour >= DAY_CYCLE.nightStart || gameHour < DAY_CYCLE.nightEnd) return 1.0;
+  if (gameHour >= DAY_CYCLE.dayStart && gameHour < DAY_CYCLE.dayEnd) return 0.0;
+  if (gameHour >= DAY_CYCLE.nightEnd && gameHour < DAY_CYCLE.dayStart)
+    return 1.0 - (gameHour - DAY_CYCLE.nightEnd) / (DAY_CYCLE.dayStart - DAY_CYCLE.nightEnd);
+  if (gameHour >= DAY_CYCLE.dayEnd && gameHour < DAY_CYCLE.nightStart)
+    return (gameHour - DAY_CYCLE.dayEnd) / (DAY_CYCLE.nightStart - DAY_CYCLE.dayEnd);
   return 0;
 }
 
 export function updateSunPosition(gameHour) {
   if (!sunMesh) return;
-  const sunrise = 6, sunset = 19;
 
-  if (gameHour >= sunrise && gameHour <= sunset) {
+  if (gameHour >= DAY_CYCLE.sunrise && gameHour <= DAY_CYCLE.sunset) {
     sunMesh.visible = true;
-    const t = (gameHour - sunrise) / (sunset - sunrise);
+    const t = (gameHour - DAY_CYCLE.sunrise) / (DAY_CYCLE.sunset - DAY_CYCLE.sunrise);
     const azimuth = t * Math.PI;
     const elevation = Math.sin(t * Math.PI) * (Math.PI / 2);
     const R = 500;
