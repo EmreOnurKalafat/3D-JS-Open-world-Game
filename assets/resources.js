@@ -26,7 +26,7 @@ export const MAT = {
   DARK_WALL:        new THREE.MeshLambertMaterial({ color: 0x4a4a4a }),
   TRIM:             new THREE.MeshLambertMaterial({ color: 0x222222 }),
   ACCENT:           new THREE.MeshLambertMaterial({ color: 0x12355B }),
-  ROOF:             new THREE.MeshLambertMaterial({ color: 0x1f1f1f }),
+  ROOF:             new THREE.MeshLambertMaterial({ color: 0x3c3c3c }),
   CONCRETE:         new THREE.MeshLambertMaterial({ color: 0xa09888 }),
 
   // ── Metal / Trim ───────────────────────

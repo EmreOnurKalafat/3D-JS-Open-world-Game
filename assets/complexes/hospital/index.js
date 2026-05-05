@@ -21,14 +21,18 @@ export { HOSPITAL_GRID_COL, HOSPITAL_GRID_ROW };
  * Builds the full hospital complex and attaches it to `scene`.
  * @param {THREE.Scene}  scene
  * @param {CANNON.World} physicsWorld
- * @returns {{ group: THREE.Group, interactionZones: Array }}
+ * @param {boolean}      [useInstanced]
+ * @returns {{ group: THREE.Group, interactionZones: Array, trees?: Array, lamps?: Array }}
  */
-export function createHospital(scene, physicsWorld) {
+export function createHospital(scene, physicsWorld, useInstanced = false) {
   const physicsBodies = [];
 
   const group = new THREE.Group();
   group.name = 'hospital';
   group.userData.sourceFile = ZONE_SRC;
+
+  const collectTrees = useInstanced ? [] : null;
+  const collectLamps = useInstanced ? [] : null;
 
   /* Build order (back-to-front, ground-up) */
   buildShell(group, physicsBodies);
@@ -37,10 +41,10 @@ export function createHospital(scene, physicsWorld) {
   buildMainLobby(group);
   buildAmbulanceBay(group, physicsBodies);
   buildMainCanopy(group);
-  buildParking(group);
-  buildGarden(group);
+  buildParking(group, collectLamps);
+  buildGarden(group, collectTrees, collectLamps);
   buildServiceArea(group);
-  buildPerimeter(group, physicsBodies);
+  buildPerimeter(group, physicsBodies, collectLamps);
 
   /* ── Register physics bodies ──────────────────────────── */
   for (const pb of physicsBodies) {
@@ -80,5 +84,10 @@ export function createHospital(scene, physicsWorld) {
   console.log('[HOSPITAL] Built — %d physics bodies, %d interaction zones',
     physicsBodies.length, interactionZones.length);
 
-  return { group, interactionZones };
+  const result = { group, interactionZones };
+  if (useInstanced) {
+    result.trees = collectTrees;
+    result.lamps = collectLamps;
+  }
+  return result;
 }

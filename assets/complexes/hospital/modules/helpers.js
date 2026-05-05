@@ -1,13 +1,15 @@
 // assets/prefabs/complexes/hospital/modules/helpers.js
 // Primitive placement helpers. ALL hospital modules use these.
 import * as THREE from 'three';
+import { GEO } from '../../../resources.js';
 import { hx, hz, MODULE_SRC_PREFIX } from '../constants.js';
 
 const SRC = MODULE_SRC_PREFIX + '/helpers.js';
 
 /** Generic box. Pushes to physicsBodies if provided. */
 export function b(g, sx, sy, sz, lx, ly, lz, mat, ry = 0, physicsBodies = null) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mat);
+  const m = new THREE.Mesh(GEO.BOX_1.clone(), mat);
+  m.scale.set(sx, sy, sz);
   m.position.set(hx(lx), ly, hz(lz));
   if (ry !== 0) m.rotation.y = ry;
   m.castShadow = m.receiveShadow = true;
@@ -27,9 +29,11 @@ export function slab(g, sx, sz, lx, ly, lz, mat) {
   return b(g, sx, 0.08, sz, lx, ly, lz, mat, 0, null);
 }
 
-/** Cylinder helper. */
+/** Cylinder helper. Uses shared geometry for equal radii, unique for cones. */
 export function cyl(g, rT, rB, h, seg, mat, lx, ly, lz, rz = 0) {
-  const m = new THREE.Mesh(new THREE.CylinderGeometry(rT, rB, h, seg), mat);
+  const geo = rT === rB ? GEO.CYL_8.clone() : new THREE.CylinderGeometry(rT, rB, h, seg);
+  const m = new THREE.Mesh(geo, mat);
+  if (rT === rB) m.scale.set(rT * 2, h, rT * 2);
   m.position.set(hx(lx), ly, hz(lz));
   if (rz !== 0) m.rotation.z = rz;
   m.castShadow = true;

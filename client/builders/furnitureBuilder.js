@@ -21,9 +21,10 @@ import { LAMP, TRAFFIC_LIGHT, STREET_TREE, PARKED_CAR } from '/config/furniture.
  * @param {Object} occ - OccupancyGrid instance
  * @param {Object} opts - { GRID, CELL, WH, HALF, ROAD, SW, BLOCK, isSpecialCell(row,col) }
  * @param {Array} treesArr — cityData.trees array to push position refs into
+ * @param {Array<{x:number,z:number,rotY:number}>} [extraLamps] — additional lamp coords (e.g. from complexes)
  * @returns {{treeCoords: Array, carCoords: Array}}
  */
-export function placeFurniture(scene, occ, opts, treesArr) {
+export function placeFurniture(scene, occ, opts, treesArr, extraLamps = []) {
   const { GRID, CELL, WH, HALF, ROAD, SW, BLOCK, isSpecialCell } = opts;
   const lampCoords = [];
   const tlCoords = [];
@@ -125,8 +126,8 @@ export function placeFurniture(scene, occ, opts, treesArr) {
     }
   }
 
-  // Build lamp + traffic light InstancedMeshes immediately
-  createLampInstances(scene, lampCoords);
+  // Build lamp + traffic light InstancedMeshes immediately (include complex extras)
+  createLampInstances(scene, [...lampCoords, ...extraLamps]);
   createTrafficLightInstances(scene, tlCoords);
 
   return { treeCoords, carCoords };

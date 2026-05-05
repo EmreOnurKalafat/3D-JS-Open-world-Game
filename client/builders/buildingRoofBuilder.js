@@ -41,6 +41,8 @@ function buildRoofFlatSimple(bw, bd) {
 
 function buildRoofPitched(bw, bd) {
   const ridgeH = 2.5 + Math.random() * 1.5;
+  // Ridge runs along the building's width (X). Triangular cross-section spans depth (Z).
+  // Shape is drawn in XZ plane: X = width axis (bw), Y = up (ridgeH), Z = depth axis (bd)
   const shape = new THREE.Shape();
   shape.moveTo(-bd / 2, 0);
   shape.lineTo(0, ridgeH);
@@ -48,7 +50,8 @@ function buildRoofPitched(bw, bd) {
   shape.closePath();
   const extrudeSettings = { steps: 1, depth: bw - 1.0, bevelEnabled: false };
   const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-  geo.translate(-(bw - 1.0) / 2, 0, 0);
+  // Center in Z (extrusion direction) so roof sits centered on building
+  geo.translate(0, 0, -(bw - 1.0) / 2);
   return geo;
 }
 

@@ -4,7 +4,7 @@
 
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-import { MAT } from '/assets/resources.js';
+import { MAT, GEO } from '/assets/resources.js';
 import { getPhysicsWorld } from '../core/physicsManager.js';
 import { BUILDING_TYPES, getZoneBuildingTypes } from '/config/buildings.js';
 import { buildRoofForType } from './buildingRoofBuilder.js';
@@ -16,6 +16,10 @@ const SRC = 'client/builders/buildingOrchestrator.js';
 
 // Re-export for world.js convenience
 export { updateBuildingTexturesForPhase };
+
+// Dimension bins for better InstancedMesh batching
+const DIM_BIN = 3;
+function snapDim(v) { return Math.round(v / DIM_BIN) * DIM_BIN; }
 
 // ═══════════════════════════════════════════════════════════
 //  ZONE-BASED BUILDING PLACEMENT
@@ -46,7 +50,7 @@ export function placeZoneBuildings(scene, occ, opts, buildingsArr) {
       const typeNames = getZoneBuildingTypes(zone);
 
       const primaryType = BUILDING_TYPES[typeNames[0]];
-      const dens = primaryType ? (zone === 'downtown_core' ? 0.95 : zone === 'industrial' ? 0.80 : 0.80) : 0.70;
+      const dens = primaryType ? (zone === 'downtown_core' ? 0.85 : zone === 'industrial' ? 0.65 : 0.65) : 0.55;
       const nCols = zone === 'industrial' ? 1 : zone === 'downtown_core' || zone === 'downtown' ? 2 : 3;
       const nRows = zone === 'industrial' ? 2 : zone === 'downtown_core' || zone === 'downtown' ? 2 : zone === 'beach' ? 2 : 4;
 
@@ -70,15 +74,15 @@ export function placeZoneBuildings(scene, occ, opts, buildingsArr) {
           const bd = bType.minW + Math.random() * (bType.maxW - bType.minW);
           const bh = bType.minH + Math.random() * (bType.maxH - bType.minH);
 
-          const finalW = Math.min(bw, slotW - BUILD_MARGIN * 2);
-          const finalD = Math.min(bd, slotD - BUILD_MARGIN * 2);
+          const finalW = snapDim(Math.min(bw, slotW - BUILD_MARGIN * 2));
+          const finalD = snapDim(Math.min(bd, slotD - BUILD_MARGIN * 2));
           if (finalW < 3 || finalD < 3) continue;
 
           const jitter = 0.4;
           const bx = sx + c * slotW + slotW / 2 + (Math.random() - 0.5) * (slotW - finalW - BUILD_MARGIN) * jitter;
           const bz = sz + r * slotD + slotD / 2 + (Math.random() - 0.5) * (slotD - finalD - BUILD_MARGIN) * jitter;
 
-          const sig = `${typeName}_${finalW.toFixed(1)}x${bh.toFixed(1)}x${finalD.toFixed(1)}`;
+          const sig = `${typeName}_${finalW}x${bh.toFixed(0)}x${finalD}`;
 
           const texData = getTypeTextureData(typeName);
           if (!texData._sharedMat) {
@@ -88,11 +92,10 @@ export function placeZoneBuildings(scene, occ, opts, buildingsArr) {
             texData._sharedMat.map.repeat.set(1, Math.max(1, Math.round(bType.maxH / 10)));
           }
 
-          // Body
-          const bodyGeo = new THREE.BoxGeometry(finalW, bh, finalD);
-          bodyGeo.translate(0, bh / 2, 0);
+          // Body — use shared unit box, scaled
+          const bodyGeo = GEO.BOX_1.clone();
           const bodyMatrix = new THREE.Matrix4().compose(
-            new THREE.Vector3(bx, 0, bz), new THREE.Quaternion(), new THREE.Vector3(1, 1, 1));
+            new THREE.Vector3(bx, bh / 2, bz), new THREE.Quaternion(), new THREE.Vector3(finalW, bh, finalD));
           addBuildEntry('body_' + sig, bodyGeo, texData._sharedMat, bodyMatrix);
 
           // Road-facing direction
@@ -115,10 +118,11 @@ export function placeZoneBuildings(scene, occ, opts, buildingsArr) {
             new THREE.Vector3(bx + eOffX, 0, bz + eOffZ), eQuat, new THREE.Vector3(1, 1, 1));
           addBuildEntry('entrance_' + sig, entranceGeo, buildRoofMat, eMatrix);
 
-          // Roof
+          // Roof — own matrix, no scale (geometry has baked dimensions)
           const roofGeo = buildRoofForType(typeName, finalW, finalD);
-          roofGeo.translate(0, bh + 0.15, 0);
-          addBuildEntry('roof_' + sig, roofGeo, buildRoofMat, bodyMatrix);
+          const roofMatrix = new THREE.Matrix4().compose(
+            new THREE.Vector3(bx, bh, bz), new THREE.Quaternion(), new THREE.Vector3(1, 1, 1));
+          addBuildEntry('roof_' + sig, roofGeo, buildRoofMat, roofMatrix);
 
           // Physics
           const shape = new CANNON.Box(new CANNON.Vec3(finalW / 2, bh / 2, finalD / 2));
@@ -171,9 +175,10 @@ export function placeCustomBuilding(scene, occ, opts) {
     texData._sharedMat.map.repeat.set(1, Math.max(1, Math.round(h / 10)));
   }
 
-  const bodyGeo = new THREE.BoxGeometry(w, h, d);
-  bodyGeo.translate(0, h / 2, 0);
+  const bodyGeo = GEO.BOX_1.clone();
   const bodyMesh = new THREE.Mesh(bodyGeo, texData._sharedMat);
+  bodyMesh.scale.set(w, h, d);
+  bodyMesh.position.y = h / 2;
   bodyMesh.castShadow = true;
   bodyMesh.receiveShadow = true;
   bodyMesh.userData.sourceFile = effectiveSrc;

@@ -38,25 +38,25 @@ export function updateBuildingTexturesForPhase(phase) {
 let buildingLights = [];
 let nightFactor = 0;
 
-/** Initialize area lights for night-time window glow */
+/** Initialize sparse area lights for night-time window glow */
 export function initBuildingLights(scene, CELL, WH) {
   const lights = [];
-  const STEP = CELL * 2;
-  const off = WH * 0.7;
+  const STEP = WH * 0.8;
 
-  for (let ix = -off; ix <= off + 1; ix += STEP) {
-    for (let iz = -off; iz <= off + 1; iz += STEP) {
-      const light = new THREE.PointLight(0xFFDDAA, 0, 220);
-      light.position.set(ix, 20, iz);
+  // 3×2 grid = 6 lights, distance=120 — dramatic reduction from original 25 lights
+  for (let ix = -STEP; ix <= STEP + 1; ix += STEP) {
+    for (let iz = -STEP * 0.65; iz <= STEP * 0.65 + 1; iz += STEP * 1.3) {
+      const light = new THREE.PointLight(0xFFDDAA, 0, 120);
+      light.position.set(ix, 22, iz);
       light.castShadow = false;
-      light.userData = { maxIntensity: 200 };
+      light.userData = { maxIntensity: 120 };
       scene.add(light);
       lights.push(light);
     }
   }
 
   buildingLights = lights;
-  console.log('[BUILDING] %d area lights created', lights.length);
+  console.log('[BUILDING] %d sparse area lights created', lights.length);
 }
 
 /** Smoothly update building lighting for day/night cycle */

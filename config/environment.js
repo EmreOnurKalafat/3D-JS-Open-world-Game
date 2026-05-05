@@ -3,21 +3,21 @@
 
 export const SKY = {
   radius: 550,
-  segments: 32,
+  segments: 16,
   baseColor: 0x87CEEB,
   fogColor: 0x87CEEB,
-  fogNear: 150,
-  fogFar: 480,
+  fogNear: 120,
+  fogFar: 280,
 };
 
 export const SUN = {
   radius: 10,
-  segments: 32,
+  segments: 16,
   color: 0xfff8dc,
   distance: 500,            // Orbital radius from origin
   glow: {
     radius: 20,
-    segments: 32,
+    segments: 16,
     color: 0xffcc66,
     opacity: 0.15,
   },
@@ -33,15 +33,15 @@ export const CLOUD = {
   puffCountMax: 5,
   puffRadiusMin: 8,
   puffRadiusMax: 26,
-  puffSegments: 7,           // Low-res for performance
-  puffSegmentsFlat: 5,
+  puffSegments: 5,           // Low-res for performance
+  puffSegmentsFlat: 4,
   puffScaleYMin: 0.4,
   puffScaleYMax: 0.7,
   puffSpread: 35,            // Max random offset from group center
   puffSpreadY: 12,
   flatRadiusMin: 20,
   flatRadiusMax: 35,
-  flatSegments: 8,
+  flatSegments: 6,
   flatSegmentsFlat: 4,
   flatScale: { x: 1.2, y: 0.15, z: 1.2 },
   flatYOffset: -6,
@@ -97,6 +97,6 @@ export const DAY_CYCLE = {
 };
 
 export const GROUND = {
-  size: 600,
+  size: 500,
   color: 0x3D2B1F,
 };

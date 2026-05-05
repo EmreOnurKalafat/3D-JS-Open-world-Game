@@ -8,9 +8,10 @@ import {
   initPhysicsWorld, createGroundPlane, stepPhysics,
 } from './physicsManager.js';
 import {
-  generateCity, updateWorld,
+  generateCity, updateWorld, cityData,
   updateBuildingTexturesForPhase, updateBuildingLighting,
 } from '../zones/world.js';
+import { lodManager } from './lodManager.js';
 import {
   initFreecamEditor, updateFreecamEditor, applyDeletions,
 } from '../editor/freecamEditor.js';
@@ -25,6 +26,7 @@ import {
   initCrosshair, initInputHandlers, updateFreecam,
   freecamActive, timeOffset, onKeyDown,
 } from './inputManager.js';
+import { initE2EHooks } from './e2eHooks.js';
 
 // --- UI state ---
 const PHASE_LABELS = { day: 'Gündüz', night: 'Gece', sunset: 'Gün Batımı', dawn: 'Şafak' };
@@ -47,7 +49,7 @@ function updateDayNight(wrappedSeconds) {
 
     const fogColor = DAY_CYCLE.fogColors[phase] || DAY_CYCLE.fogColors.day;
     scene.fog.color.set(fogColor);
-    scene.background = new THREE.Color(fogColor);
+    scene.background.set(fogColor);
 
     updateBuildingTexturesForPhase(phase);
     // Update the exported dayPhase (it's a let binding, we access via renderManager)
@@ -112,6 +114,11 @@ function gameLoop() {
 
     update(delta, wrapped);
     updateClouds(delta, effectiveElapsed);
+
+    // Performance: chunk-based culling + LOD distance visibility
+    if (cityData.chunkMgr) cityData.chunkMgr.update(camera.position);
+    lodManager.update(camera.position);
+
     renderer.render(scene, camera);
   } catch (err) {
     console.error('[ERROR][main] gameLoop:', err);
@@ -160,6 +167,8 @@ function boot() {
   initFreecamEditor(scene, camera, renderer.domElement);
 
   applyDeletions();
+
+  initE2EHooks();
 
   window.addEventListener('resize', onResize);
   window.addEventListener('keydown', onKeyDown);

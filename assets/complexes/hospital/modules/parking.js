@@ -3,14 +3,18 @@
 // Uses: createSokakLambasi prefab
 
 import * as THREE from 'three';
-import { HD, MODULE_SRC_PREFIX } from '../constants.js';
+import { HD, hx, hz, MODULE_SRC_PREFIX } from '../constants.js';
 import { M } from '../materials.js';
 import { slab, placePrefab } from './helpers.js';
 import { createSokakLambasi } from '../../../props/outdoor/sokakLambasi.js';
 
 const SRC = MODULE_SRC_PREFIX + '/parking.js';
 
-export function buildParking(g) {
+/**
+ * @param {THREE.Group} g
+ * @param {Array<{x:number, z:number, rotY:number}>} [collectLamps]
+ */
+export function buildParking(g, collectLamps = null) {
   const START_Z = HD + 1.5;
 
   slab(g, 26, 13, 0, 0.05, START_Z + 6.5, M.asphalt);
@@ -34,11 +38,17 @@ export function buildParking(g) {
     slab(g, 0.12, 1.6, -6 + i * 2.6, 0.07, rowA_Z + STALL_D / 2 + 1.0, M.stripeY);
   }
 
-  /* ── 3 lamp posts — via SokakLambasi prefab ─────────────── */
+  /* ── 3 lamp posts ────────────────────────────────────────── */
   const lampPositions = [[-11, rowA_Z], [11, rowA_Z], [0, rowB_Z + 1.5]];
-  for (const [llx, llz] of lampPositions) {
-    const lamp = createSokakLambasi();
-    placePrefab(g, lamp, llx, 0, llz, 0);
+  if (collectLamps) {
+    for (const [llx, llz] of lampPositions) {
+      collectLamps.push({ x: hx(llx), z: hz(llz), rotY: 0 });
+    }
+  } else {
+    for (const [llx, llz] of lampPositions) {
+      const lamp = createSokakLambasi();
+      placePrefab(g, lamp, llx, 0, llz, 0);
+    }
   }
 
   // Disabled bay

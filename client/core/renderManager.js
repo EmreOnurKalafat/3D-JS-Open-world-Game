@@ -19,10 +19,11 @@ export let dayPhase = 'day';
 
 export function initScene() {
   renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.0));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.shadowMap.enabled = false;
   renderer.toneMapping = THREE.NoToneMapping;
+  renderer.sortObjects = false;
   document.body.prepend(renderer.domElement);
   renderer.domElement.id = 'gameCanvas';
 
@@ -30,7 +31,7 @@ export function initScene() {
   scene.background = new THREE.Color(SKY.baseColor);
   scene.fog = new THREE.Fog(SKY.fogColor, SKY.fogNear, SKY.fogFar);
 
-  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 900);
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 320);
   camera.position.set(0, 80, 100);
   camera.lookAt(0, 0, 0);
 }

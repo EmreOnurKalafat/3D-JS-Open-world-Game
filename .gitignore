@@ -1,24 +1,40 @@
-node_modules
-Claude.md
-ClaudeEski.md
+# ── Dependencies ──
+node_modules/
+package-lock.json
+
+# ── Build ──
+dist/
+build/
+*.log
+
+# ── IDE & Tools ──
 .claude/
 .omc/
 .DS_Store
 *.env
-*.log
 *.tmp
-package-lock.json
-dist
-build
-coverage
-logs
 .ai_prompt_queue.json
 .ai_response.json
 .ai_queue/
-docs/
-folderStructer.md
-data/editor/
-ClaudeEski.md
-folderStructer.md
 
-SistemRaporu02.05.2026.md
+# ── Testing ──
+tests/
+test-results/
+.playwright/
+.playwright-mcp/
+playwright.config.js
+
+# ── Claude Docs (internal, not committed) ──
+Claude.md
+ClaudeEski.md
+CLAUDE_full_backup.md
+CLAUDE_full_backup.md
+folderStructer.md
+docs/
+
+# ── Editor Data (runtime generated) ──
+data/editor/
+
+# ── Snapshots ──
+vehicles-snapshot.yml
+vehicles-snapshots.yml

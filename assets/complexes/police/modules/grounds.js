@@ -11,7 +11,12 @@ const SRC = 'assets/prefabs/complexes/police/modules/grounds.js';
 
 const { ROOF:roofMat, WHITE:whiteLine } = MAT;
 
-export function buildGrounds(scene, cityDataRef) {
+/**
+ * @param {THREE.Scene} scene
+ * @param {object} cityDataRef
+ * @param {Array<{x:number, z:number, rotY:number}>} [collectLamps]
+ */
+export function buildGrounds(scene, cityDataRef, collectLamps = null) {
   /* ── Parking lot ────────────────────────────────────────── */
   box(scene, false, 30.0, 0.1, 10.0, 0, 0.05, -18, roofMat);
   for (const lxP of [-8, -4, 4, 8]) {
@@ -23,16 +28,23 @@ export function buildGrounds(scene, cityDataRef) {
     scene.add(line);
   }
 
+  // Police cars — unique prefabs, keep as individual Groups
   placePolisArabasi(scene, -6, -17, 0);
   placePolisArabasi(scene, 6, -17, 0);
 
   /* ── Street lamps ───────────────────────────────────────── */
-  for (const lxL of [-14, 14]) {
-    const lamp = createSokakLambasi();
-    lamp.position.set(wx(lxL), 0, wz(-15));
-    if (lxL > 0) lamp.rotation.y = Math.PI;
-    scene.add(lamp);
-    const lt = lamp.children.find(c => c.isPointLight);
-    if (lt && cityDataRef) cityDataRef.buildingLights.push(lt);
+  if (collectLamps) {
+    for (const lxL of [-14, 14]) {
+      collectLamps.push({ x: wx(lxL), z: wz(-15), rotY: lxL > 0 ? Math.PI : 0 });
+    }
+  } else {
+    for (const lxL of [-14, 14]) {
+      const lamp = createSokakLambasi();
+      lamp.position.set(wx(lxL), 0, wz(-15));
+      if (lxL > 0) lamp.rotation.y = Math.PI;
+      scene.add(lamp);
+      const lt = lamp.children.find(c => c.isPointLight);
+      if (lt && cityDataRef) cityDataRef.buildingLights.push(lt);
+    }
   }
 }

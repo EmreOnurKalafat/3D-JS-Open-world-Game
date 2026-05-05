@@ -1,219 +1,129 @@
-# webGTA — Tarayıcı Tabanlı 3D Açık Dünya Multiplayer Oyun
+# OpenCity — Tarayıcı Tabanlı 3D Açık Dünya Oyunu
 
-Tamamen tarayıcıda çalışan, Three.js + Cannon-es ile inşa edilmiş, GTA Online benzeri açık dünya oyunu.
+> *Browser-Based 3D Open World Game*
 
-**Harici asset yok.** Tüm modeller, dokular ve sesler prosedürel olarak kod ile üretilir.
+**OpenCity**, tamamen tarayıcıda çalışan, WebGL + Three.js ile inşa edilmiş prosedürel açık dünya oyun motorudur. Şehir içi serbest dolaşım, araç kullanımı, soygun, polis kovalamacası ve çok oyunculu modları hedefler.
+
+> **OpenCity** is a fully browser-based procedural open world game engine built with WebGL and Three.js. It aims to deliver free-roam city exploration, driving, heists, police chases, and multiplayer modes — all in the browser.
+
+**Sıfır harici asset.** Tüm 3D modeller, dokular ve ses efektleri kod ile prosedürel olarak üretilir. `.glb`, `.png`, `.mp3` yok.
+
+> **Zero external assets.** All 3D models, textures, and sound effects are generated procedurally in code. No `.glb`, `.png`, or `.mp3` files.
 
 ---
 
-## Teknoloji Yığını
+## Proje Durumu · *Project Status*
 
-| Katman | Teknoloji |
+**Aşama:** Erken geliştirme — Oyun dünyası ve fizik motoru hazır, oyuncu sistemi sırada.
+
+> **Stage:** Early development — Game world and physics engine are ready, player system is next.
+
+**Çalışır durumdaki sistemler · *Working systems:***
+- Prosedürel şehir (10×10 grid, yollar, binalar, park, plaj, su) · *Procedural city (10×10 grid, roads, buildings, park, beach, water)*
+- Gündüz/gece döngüsü (20dk = 1 oyun günü) · *Day/night cycle (20min = 1 game day)*
+- Cannon-es fizik (yerçekimi, çarpışma, debug) · *Physics engine (gravity, collision, debug)*
+- Freecam editör (obje seçme, anlık kod düzenleme, AI asistanı) · *Freecam editor (object selection, live code editing, AI assistant)*
+- Chunk tabanlı LOD ve performans yönetimi · *Chunk-based LOD & performance management*
+- 18 modüler prefab (mobilya, araç, yapı, kıyafet mağazası) · *18 modular prefabs (furniture, vehicles, structures, clothing store)*
+
+**Sıradaki adımlar · *Next steps:***
+1. Oyuncu kontrolcüsü (WASD hareket, üçüncü şahıs kamera) · *Player controller (WASD movement, third-person camera)*
+2. Araç sistemi (sürüş fiziği, araçlar arası geçiş) · *Vehicle system (driving physics, enter/exit)*
+3. Combat ve silahlar (ateş etme, hit detection, particle sistemi) · *Combat & weapons (shooting, hit detection, particles)*
+4. NPC sistemi (yayalar, sürücüler, esnaf) · *NPC system (pedestrians, drivers, shopkeepers)*
+
+---
+
+## Teknoloji Yığını · *Tech Stack*
+
+| Katman · *Layer* | Teknoloji · *Technology* |
 |---|---|
 | 3D Render | Three.js |
-| Fizik Motoru | Cannon-es |
+| Fizik Motoru · *Physics* | Cannon-es |
 | Multiplayer | Socket.io |
-| Sesli Sohbet | WebRTC |
-| Ses Sentezi | Web Audio API |
-| Mini Harita | Canvas 2D |
-| Sunucu | Express + Node.js |
+| Sesli Sohbet · *Voice Chat* | WebRTC |
+| Ses Efektleri · *Audio* | Web Audio API (sentez · *synthesis*) |
+| Mini Harita · *Minimap* | Canvas 2D |
+| Sunucu · *Server* | Express + Node.js |
 | Build | Vite |
 
 ---
 
-## Başlangıç
-
-```bash
-npm install
-npm run dev      # Vite (:5173) + Sunucu (:3000)
-```
-
-Tarayıcıda `http://localhost:5173` adresini aç.
-
----
-
-## Kontroller
-
-| Tuş | İşlev |
-|---|---|
-| W A S D | Hareket |
-| Shift | Koşma |
-| Space | Zıplama |
-| U | Freecam (geliştirici kamerası) |
-| F | Test kutusu fırlat |
-| D / P | Fizik debug tel kafes |
-| K / L | Zamanı geri/ileri sar |
-
-**Freecam modunda (U):**
-
-| Tuş | İşlev |
-|---|---|
-| W A S D | Uçuş |
-| Q / E | Alçal / Yüksel |
-| Shift | Hızlı uçuş |
-| Mouse | Bakış yönü |
-| Sol Tık | Obje seç (editör) |
-
----
-
-## Mevcut Özellikler
-
-- 10×10 grid prosedürel şehir (yollar, binalar, park, plaj, su)
-- Gündüz/gece döngüsü (20 dakika = 1 oyun günü)
-- Cannon-es fizik motoru (yerçekimi, çarpışma, debug modu)
-- Chunk-based LOD ve performans yönetimi
-- Freecam editör (obje seçimi, kaynak kod düzenleme, silme kaydı, AI asistanı)
-- 13 modüler prefab (mobilya, araç, yapı)
-- Polis karakolu kompleksi (prefab tabanlı)
-- Hastane binası
-
----
-
-## Faz Durumu
-
-| Faz | Durum |
-|---|---|
-| 1 — Scaffold & Sahne | ✅ |
-| 2 — Fizik Motoru | ✅ |
-| 3 — Prosedürel Şehir | ✅ |
-| 4 — Oyuncu Kontrolcüsü | ⌛ |
-| 5 — Araç Sistemi | ⌛ |
-| 6 — Savaş & Silahlar | ⌛ |
-| 7 — NPC Sistemi | ⌛ |
-| 8 — Polis & Aranma | ⌛ |
-| 9 — Ekonomi & Soygun | ⌛ |
-| 10 — Multiplayer | 🔶 Sunucu hazır |
-| 15 — Optimizasyon | ✅ |
-
----
-
-## Proje Yapısı
-
-```
-├── server/server.cjs         ← Express + Socket.io sunucusu
-├── shared/                   ← Ortak sabitler & yardımcılar
-├── client/
-│   ├── core/                 ← main.js, renderManager, physicsManager, inputManager, chunkManager
-│   ├── builders/             ← entityBuilder, textureBuilder
-│   ├── zones/                ← world.js, zone_police.js, zone_hospital.js
-│   ├── editor/               ← freecamEditor.js
-│   └── ui/                   ← hudManager.js, lobbyManager.js (stub)
-├── assets/
-│   ├── prefabs/props/        ← sandalye, masa, dolap, suSebili, bayrak, hucreYatagi, toplantiMasasi
-│   ├── prefabs/vehicles/     ← polisArabasi, helikopter
-│   ├── prefabs/structures/   ← helipad, merdiven, cit, sokakLambasi
-│   └── shared/resources.js   ← Geometri & materyal havuzu
-└── styles/                   ← CSS
-```
-
----
-
----
-
-# webGTA — Browser-Based 3D Open World Multiplayer Game
-
-A fully browser-based open-world game built with Three.js + Cannon-es, inspired by GTA Online mechanics.
-
-**Zero external assets.** All models, textures, and sounds are generated procedurally in code.
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| 3D Render | Three.js |
-| Physics | Cannon-es |
-| Multiplayer | Socket.io |
-| Voice Chat | WebRTC |
-| Audio | Web Audio API |
-| Minimap | Canvas 2D |
-| Server | Express + Node.js |
-| Build | Vite |
-
----
-
-## Getting Started
+## Başlangıç · *Getting Started*
 
 ```bash
 npm install
 npm run dev      # Vite (:5173) + Server (:3000)
 ```
 
-Open `http://localhost:5173` in your browser.
+Tarayıcıda `http://localhost:5173` aç. · *Open `http://localhost:5173` in your browser.*
 
 ---
 
-## Controls
+## Kontroller · *Controls*
 
-| Key | Action |
+| Tuş · *Key* | İşlev · *Action* |
 |---|---|
-| W A S D | Move |
-| Shift | Sprint |
-| Space | Jump |
-| U | Freecam (developer camera) |
-| F | Spawn test box |
-| D / P | Toggle physics wireframe |
-| K / L | Rewind / fast-forward time |
-
-**Freecam mode (U):**
-
-| Key | Action |
-|---|---|
-| W A S D | Fly |
-| Q / E | Descend / Ascend |
-| Shift | Fast fly |
-| Mouse | Look around |
-| Left Click | Select object (editor) |
+| **U** | Freecam (geliştirici kamerası · *developer camera*) |
+| **W A S D** | Freecam uçuş · *fly* |
+| **Q / E** | Alçal / Yüksel · *descend / ascend* |
+| **Shift** | Hızlı uçuş · *fast fly* |
+| **Mouse** | Bakış yönü · *look around* |
+| **F** | Test kutusu fırlat · *spawn test box* |
+| **D** | Debug panel |
+| **P** | Fizik tel kafes · *physics wireframe* |
+| **K / L** | Zamanı ileri/geri sar · *fast-forward / rewind time* |
 
 ---
 
-## Current Features
+## Geliştirme Yol Haritası · *Development Roadmap*
 
-- 10×10 grid procedural city (roads, buildings, park, beach, water)
-- Day/night cycle (20 min = 1 game day)
-- Cannon-es physics engine (gravity, collision, debug wireframe)
-- Chunk-based LOD and performance management
-- Freecam editor (object selection, source editing, deletion registry, AI assistant)
-- 13 modular prefabs (furniture, vehicles, structures)
-- Police station complex (prefab-based)
-- Hospital building
-
----
-
-## Phase Status
-
-| Phase | Status |
-|---|---|
-| 1 — Scaffold & Scene | ✅ |
-| 2 — Physics Engine | ✅ |
-| 3 — Procedural City | ✅ |
-| 4 — Player Controller | ⌛ |
-| 5 — Vehicle System | ⌛ |
-| 6 — Combat & Weapons | ⌛ |
-| 7 — NPC System | ⌛ |
-| 8 — Police & Wanted | ⌛ |
-| 9 — Economy & Heists | ⌛ |
-| 10 — Multiplayer | 🔶 Server ready |
-| 15 — Optimization | ✅ |
+| Faz · *Phase* | Sistem · *System* | Durum · *Status* |
+|---|---|---|
+| 1 | Scaffold & Sahne · *Scene* | ✅ |
+| 2 | Fizik Motoru · *Physics* | ✅ |
+| 3 | Prosedürel Şehir · *Procedural City* | ✅ |
+| 4 | Oyuncu Kontrolcüsü · *Player Controller* | ⬜ Bekliyor · *Pending* |
+| 5 | Araç Sistemi · *Vehicle System* | ⬜ Bekliyor · *Pending* |
+| 6 | Savaş & Silahlar · *Combat & Weapons* | ⬜ Bekliyor · *Pending* |
+| 7 | NPC Sistemi · *NPC System* | ⬜ Bekliyor · *Pending* |
+| 8 | Polis & Aranma · *Police & Wanted* | ⬜ Bekliyor · *Pending* |
+| 9 | Ekonomi & Soygun · *Economy & Heists* | ⬜ Bekliyor · *Pending* |
+| 10 | Multiplayer | 🔶 Sunucu hazır · *Server ready* |
+| 11 | Sesli/Yazılı Chat · *Voice & Text Chat* | ⬜ Bekliyor · *Pending* |
+| 12 | HUD & Arayüz · *UI* | 🔶 CSS hazır · *CSS ready* |
+| 13 | Ses Efektleri · *Audio* | ⬜ Bekliyor · *Pending* |
+| 14 | Oyun Modları · *Game Modes* | 🔶 Lobi hazır · *Lobby ready* |
+| 15 | Optimizasyon · *Optimization* | ✅ |
 
 ---
 
-## Project Structure
+## Proje Yapısı · *Project Structure*
 
 ```
-├── server/server.cjs         ← Express + Socket.io server
-├── shared/                   ← Shared constants & utilities
-├── client/
-│   ├── core/                 ← main.js, renderManager, physicsManager, inputManager, chunkManager
-│   ├── builders/             ← entityBuilder, textureBuilder
-│   ├── zones/                ← world.js, zone_police.js, zone_hospital.js
-│   ├── editor/               ← freecamEditor.js
-│   └── ui/                   ← hudManager.js, lobbyManager.js (stub)
-├── assets/
-│   ├── prefabs/props/        ← chair, desk, cabinet, water cooler, flag, cell bed, meeting table
-│   ├── prefabs/vehicles/     ← police car, helicopter
-│   ├── prefabs/structures/   ← helipad, stairs, fence, street lamp
-│   └── shared/resources.js   ← Shared geometry & material pool
-└── styles/                   ← CSS
+server/server.cjs            ← Express + Socket.io sunucusu · server
+shared/                      ← Ortak sabitler & yardımcılar · shared constants & utils
+client/
+├── core/                    ← main.js, renderManager, physicsManager, inputManager, chunkManager
+├── builders/                ← entityBuilder, textureBuilder
+├── zones/                   ← world.js (şehir · city), zone_police.js, zone_hospital.js
+├── editor/                  ← freecamEditor.js
+└── ui/                      ← hudManager.js, lobbyManager.js
+assets/
+├── prefabs/props/           ← Masa, sandalye, dolap, banko, yatak vb. · chair, desk, cabinet, bed...
+├── prefabs/vehicles/        ← Polis aracı, helikopter, ambulans · police car, helicopter, ambulance
+├── prefabs/structures/      ← Helipad, merdiven, çit, lamba · helipad, stairs, fence, lamp
+├── complexes/               ← Polis karakolu, hastane, kıyafet mağazası, süpermarket · police station, hospital...
+└── shared/resources.js      ← Geometri & materyal havuzu · geometry & material pool
+styles/                      ← CSS
 ```
+
+---
+
+## Lisans · *License*
+
+MIT — Copyright (c) 2026 Emre Onur Kalafat.
+
+Bu proje eğitim ve araştırma amaçlıdır. Tüm varlıklar prosedürel olarak kod ile üretilir, üçüncü taraf telifli materyal içermez.
+
+> *This project is for educational and research purposes. All assets are procedurally generated in code and contain no third-party copyrighted material.*

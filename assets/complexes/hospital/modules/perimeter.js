@@ -3,7 +3,7 @@
 // Uses: createSokakLambasi, createGuvenlikKamerasi
 
 import * as THREE from 'three';
-import { HW, HD, BH, MODULE_SRC_PREFIX } from '../constants.js';
+import { HW, HD, BH, hx, hz, MODULE_SRC_PREFIX } from '../constants.js';
 import { M } from '../materials.js';
 import { b, wb, slab, placePrefab } from './helpers.js';
 import { createSokakLambasi } from '../../../props/outdoor/sokakLambasi.js';
@@ -11,7 +11,12 @@ import { createGuvenlikKamerasi } from '../../../props/office/guvenlikKamerasi.j
 
 const SRC = MODULE_SRC_PREFIX + '/perimeter.js';
 
-export function buildPerimeter(g, physicsBodies) {
+/**
+ * @param {THREE.Group} g
+ * @param {Array} physicsBodies
+ * @param {Array<{x:number, z:number, rotY:number}>} [collectLamps]
+ */
+export function buildPerimeter(g, physicsBodies, collectLamps = null) {
   const PH = 1.1, PT = 0.28;
   const PX = 26, PZN = -26, PZS = 26;
 
@@ -27,11 +32,17 @@ export function buildPerimeter(g, physicsBodies) {
   // West wall
   wb(g, PT, PH, PZS - PZN, -PX, PH / 2, (PZS + PZN) / 2, M.conc, 0, physicsBodies);
 
-  /* ── Corner lamp posts — via SokakLambasi prefab ──────────── */
+  /* ── Corner lamp posts ─────────────────────────────────────── */
   const cornerLamps = [[PX - 1, PZN + 1], [PX - 1, PZS - 1], [-(PX - 1), PZN + 1], [-(PX - 1), PZS - 1]];
-  for (const [clx, clz] of cornerLamps) {
-    const lamp = createSokakLambasi();
-    placePrefab(g, lamp, clx, 0, clz, 0);
+  if (collectLamps) {
+    for (const [clx, clz] of cornerLamps) {
+      collectLamps.push({ x: hx(clx), z: hz(clz), rotY: 0 });
+    }
+  } else {
+    for (const [clx, clz] of cornerLamps) {
+      const lamp = createSokakLambasi();
+      placePrefab(g, lamp, clx, 0, clz, 0);
+    }
   }
 
   /* ── Security cameras — via GuvenlikKamerasi prefab ──────── */

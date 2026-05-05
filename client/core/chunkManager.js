@@ -6,19 +6,19 @@ export class ChunkManager {
   constructor(worldHalf) {
     this.chunkSize = CHUNK_SIZE;
     this.worldHalf = worldHalf;
-    this.renderRadius = 1;
+    this.renderRadius = 2;
     this.lastCamCX = Infinity;
     this.lastCamCZ = Infinity;
     /** Map<chunkKey, { objects: Array, impostors: Array, visible: boolean }> */
     this.chunks = new Map();
   }
 
-  /** Get chunk coordinates from world position */
+  /** Get chunk coordinates from world position, clamped to valid range */
   _getChunkCoords(wx, wz) {
-    return {
-      cx: Math.floor((wx + this.worldHalf) / CHUNK_SIZE),
-      cz: Math.floor((wz + this.worldHalf) / CHUNK_SIZE),
-    };
+    const maxC = Math.floor((2 * this.worldHalf) / CHUNK_SIZE);
+    const cx = Math.max(0, Math.min(maxC, Math.floor((wx + this.worldHalf) / CHUNK_SIZE)));
+    const cz = Math.max(0, Math.min(maxC, Math.floor((wz + this.worldHalf) / CHUNK_SIZE)));
+    return { cx, cz };
   }
 
   /** Get chunk key string */

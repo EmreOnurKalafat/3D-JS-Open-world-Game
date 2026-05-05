@@ -13,7 +13,14 @@ import { buildPerimeter } from './modules/perimeter.js';
 
 export { POLICE_GRID_COL, POLICE_GRID_ROW };
 
-export function buildPoliceStationComplex(scene, occ, cityDataRef = null) {
+/**
+ * @param {THREE.Scene} scene
+ * @param {object} occ
+ * @param {object} cityDataRef
+ * @param {boolean} [useInstanced]
+ * @returns {{ lamps?: Array }} if useInstanced
+ */
+export function buildPoliceStationComplex(scene, occ, cityDataRef = null, useInstanced = false) {
   console.log('[POLICE] Constructing Police Department v3...');
 
   const GH = 4.5, TH = 9.0;
@@ -28,10 +35,12 @@ export function buildPoliceStationComplex(scene, occ, cityDataRef = null) {
 
   const shared = { facadeMat, GH, TH, uY, iX1, iX2, iZ1, iZ2, WL, WR, DIV };
 
+  const collectLamps = useInstanced ? [] : null;
+
   buildMainBuilding(scene, shared);
   buildGroundFloorInterior(scene, shared);
   buildUpperFloorInterior(scene, uY);
-  buildGrounds(scene, cityDataRef);
+  buildGrounds(scene, cityDataRef, collectLamps);
   buildHelipadZone(scene);
   buildPerimeter(scene);
 
@@ -45,5 +54,20 @@ export function buildPoliceStationComplex(scene, occ, cityDataRef = null) {
     cityDataRef._policeFacade = { texture: wallTex };
   }
 
+  // Register police groups for ChunkManager
+  if (cityDataRef) {
+    scene.children.forEach((child) => {
+      if (child.isGroup && child.name && child.name.toLowerCase().includes('police')) {
+        if (!cityDataRef.policeGroups.includes(child)) {
+          cityDataRef.policeGroups.push(child);
+        }
+      }
+    });
+  }
+
   console.log('[POLICE] v3 Ready. Fence, door (no center pillar), outward-facing sign, deduplicated furniture/railings, larger helicopter, custom concrete texture.');
+
+  if (useInstanced) {
+    return { lamps: collectLamps };
+  }
 }

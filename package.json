@@ -4,9 +4,22 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"vite\" \"nodemon server/server.cjs\"",
+    "dev:e2e": "concurrently \"vite\" \"node server/server.cjs\"",
     "build": "vite build",
     "start": "node server/server.cjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:worldqa": "playwright test tests/e2e/world-zone-interior-qa.spec.js",
+    "test:worldqa:headed": "HEADED=1 playwright test tests/e2e/world-zone-interior-qa.spec.js --headed",
+    "test:worldqa:debug": "HEADED=1 playwright test tests/e2e/world-zone-interior-qa.spec.js --debug",
+    "test:kiyafetci": "ZONE=kiyafetci BUILDING=kiyafetci_magaza INTERIOR=kiyafetci_ic OBJ_SHOTS=4 TIMEOUT_MS=180000 npx playwright test tests/e2e/world-zone-interior-qa.spec.js",
+    "test:kiyafetci:headed": "HEADED=1 ZONE=kiyafetci BUILDING=kiyafetci_magaza INTERIOR=kiyafetci_ic npx playwright test tests/e2e/world-zone-interior-qa.spec.js --headed",
+    "test:complexes": "node tests/e2e/inspect-all-complexes.js",
+    "test:complex:hastane": "COMPLEX=hastane node tests/e2e/inspect-all-complexes.js",
+    "test:complex:polis": "COMPLEX=polis node tests/e2e/inspect-all-complexes.js",
+    "test:complex:kiyafet": "COMPLEX=kiyafet_magazasi node tests/e2e/inspect-all-complexes.js",
+    "test:complex:supermarket": "COMPLEX=supermarket node tests/e2e/inspect-all-complexes.js",
+    "test:complex:otopark": "COMPLEX=otopark node tests/e2e/inspect-all-complexes.js",
+    "test:complex:helipad": "COMPLEX=helipad node tests/e2e/inspect-all-complexes.js"
   },
   "dependencies": {
     "cannon-es": "^0.20.0",
@@ -16,6 +29,7 @@
     "three": "^0.160.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "concurrently": "^8.0.0",
     "nodemon": "^3.0.0",
     "vite": "^5.0.0"
